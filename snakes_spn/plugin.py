@@ -98,7 +98,9 @@ def gen_petrinet_class(module: ModuleType) -> Type[snakes.nets.PetriNet]:
 
     class PetriNet(module.PetriNet):
 
-        def sample_next_transition(self) -> Tuple[str, Substitution, float]:
+        def sample_next_transition(self,
+                                   rng: Optional[Callable[[], float]] = None
+                                   ) -> Tuple[str, Substitution, float]:
             """
             Sample the next transition to fire,
             using an exponential distribution of the delay for each transition,
@@ -114,6 +116,11 @@ def gen_petrinet_class(module: ModuleType) -> Type[snakes.nets.PetriNet]:
             If multiple modes are possible for a given transition,
             only the first mode is considered.
 
+            @param rng: function samping a random uniformly distributed float.
+                Can be `None`: in this case Python's build-in random
+                number generator is used.
+            @type rng: Optional[Callable[[], float]]
+
             @return name: str, name of the transition to fire
             @return binding: Substitution, the variable binding
                 to be used in the chosen transition.
@@ -123,7 +130,10 @@ def gen_petrinet_class(module: ModuleType) -> Type[snakes.nets.PetriNet]:
                 Note that this assumes 
                 memoryless exponentially distributed delays.
             """
-            transitions = {trans.name(): trans.modes()
+            if rng is None:
+                rng = random.random
+
+            transitions = {trans.name: trans.modes()
                            for trans in self.transition()}
 
             # Lists of names, modes (Substitutions/bindings) and rates
@@ -139,7 +149,7 @@ def gen_petrinet_class(module: ModuleType) -> Type[snakes.nets.PetriNet]:
                     # will probably be only one anyway.
                     mode = transitions[trans_name][0]
                     enabled_modes.append(mode)
-                    rate = self.transition[trans_name].get_current_rate(mode)
+                    rate = self.transition(trans_name).get_current_rate(mode)
                     enabled_rates.append(rate)
 
             if len(enabled_transitions) == 0:
@@ -154,13 +164,13 @@ def gen_petrinet_class(module: ModuleType) -> Type[snakes.nets.PetriNet]:
             # So using probability u ~ uniform[0, 1),
             # then we can sample a delay as
             # `delay = -ln(u) / rate`.
-            delay = -math.log(random.random()) / sum_rates
+            delay = -math.log(rng()) / sum_rates
 
             # For a given enabled transition with rate `rate`,
             # the probability that this is the transition firing next
             # is `rate / sum_rates`. This sums nicely to 1 over all
             # transitions. It is a property of exponential distributions.
-            u = random.random()
+            u = rng()
             trans_idx = 0
             cum_prob = enabled_rates[trans_idx] / sum_rates
             while cum_prob < u:
@@ -172,13 +182,17 @@ def gen_petrinet_class(module: ModuleType) -> Type[snakes.nets.PetriNet]:
 
             output = (enabled_transitions[trans_idx],
                       enabled_modes[trans_idx],
-                      enabled_rates[trans_idx])
+                      delay)
             return output
+
+    return PetriNet
 
 
 @snakes.plugins.plugin("snakes.nets")
-def extend(module: ModuleType) -> Tuple[Type[snakes.nets.Transition], Type[snakes.nets.PetriNet]]:
+def extend(module: ModuleType
+           ) -> Tuple[Type[snakes.nets.Transition], Type[snakes.nets.PetriNet]]:
 
     Transition = gen_transition_class(module)
+    PetriNet = gen_petrinet_class(module)
 
-    return Transition
+    return Transition, PetriNet
