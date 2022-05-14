@@ -254,7 +254,7 @@ def gen_place_class(module: ModuleType) -> Type[snakes.nets.Place]:
             if len(self.tokens) == 0:
                 return 0
             self.__check_token_constraint()
-            return int(self.tokens.items()[0].value)
+            return int(self.tokens.items()[0])
 
         def add(self, tokens: Iterable[Any], **args):
             module.Place.add(self, tokens, **args)
