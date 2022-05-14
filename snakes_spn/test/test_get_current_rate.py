@@ -31,6 +31,9 @@ SPN plugin.
 """
 
 
+from snakes_spn.test.testing_tools import (
+    H2_INIT, O2_INIT, draw_graph, setup_test_net, GRAPH_FILENAME)
+
 from snakes.data import Substitution
 
 import unittest
@@ -41,13 +44,6 @@ import snakes_spn.plugin as spn_plugin
 import snakes.plugins
 snakes.plugins.load([spn_plugin, "gv"], "snakes.nets", "snk")
 from snk import *
-
-GRAPH_FILENAME = os.path.join("snakes_spn", "test", "spn_oxygen_hydrogen.pdf")
-
-# Initial 'concentrations'
-O2_INIT = 100
-H2_INIT = 100
-
 
 class GetCurrentRateTestCase(unittest.TestCase):
     """
@@ -103,37 +99,6 @@ class GetCurrentRateTestCase(unittest.TestCase):
         result = self.transition.get_current_rate(mode)
         self.assertIsInstance(result, float)
         self.assertAlmostEqual(expected, result)
-
-def setup_test_net(init_hydrogen: int = H2_INIT,
-                   init_oxygen: int = O2_INIT) -> PetriNet:
-    spn = PetriNet("spn_oxygen_hydrogen")
-
-    spn.add_place(Place("hydrogen", init_hydrogen, tInteger))
-    spn.add_place(Place("oxygen", init_oxygen, tInteger))
-    spn.add_place(Place("water", 0, tInteger))
-
-    spn.add_transition(
-        Transition("O2+2H2->2H20",
-                   guard=Expression("conc_H2 >=2 and conc_O2 >= 1"),
-                   rate_function=Expression("conc_H2 * conc_O2")))
-
-    spn.add_input("hydrogen", "O2+2H2->2H20", Variable("conc_H2"))
-    spn.add_input("oxygen", "O2+2H2->2H20", Variable("conc_O2"))
-    spn.add_input("water", "O2+2H2->2H20", Variable("conc_H2O"))
-
-    spn.add_output("hydrogen", "O2+2H2->2H20", Expression("conc_H2 - 2"))
-    spn.add_output("oxygen", "O2+2H2->2H20", Expression("conc_O2 - 1"))
-    spn.add_output("water", "O2+2H2->2H20", Expression("conc_H2O + 2"))
-
-    return spn
-
-
-def draw_graph():
-    """
-    Print the SPN used for testing graphically to a PDF file.
-    """
-    spn = setup_test_net()
-    spn.draw(GRAPH_FILENAME)
 
 
 if __name__ == "__main__":
