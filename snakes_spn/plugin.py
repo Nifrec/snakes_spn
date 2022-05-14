@@ -28,16 +28,19 @@ File content:
 Python script providing the SPN features to the SNAKES plugin interface.
 """
 from __future__ import annotations
-from typing import *
+from typing import Optional, Callable, Tuple, List, Type, Any
 from types import ModuleType
+from collections.abc import Iterable
 import random
 import math
 
-from snakes import ConstraintError
+from snakes import SnakesError, ConstraintError
 import snakes.plugins
 from snakes.data import Substitution
 from snakes.nets import Expression, Token
 import snakes.nets
+
+
 
 
 def gen_transition_class(module: ModuleType) -> Type[snakes.nets.Transition]:
@@ -91,9 +94,9 @@ def gen_petrinet_class(module: ModuleType) -> Type[snakes.nets.PetriNet]:
     (These features are stepping in time, and sampling the next transition
     delay).
 
-    @param module: Python module providing a subclassable class `Transition`.
+    @param module: Python module providing a subclassable class `PetriNet`.
     @type module: types.ModuleType
-    @return: subclass of `snakes.nets.Transition` with SPN features.
+    @return: subclass of `snakes.nets.PetriNet` with SPN features.
     """
 
     class PetriNet(module.PetriNet):
@@ -153,7 +156,7 @@ def gen_petrinet_class(module: ModuleType) -> Type[snakes.nets.PetriNet]:
                     enabled_rates.append(rate)
 
             if len(enabled_transitions) == 0:
-                raise RuntimeError("No transition is enabled.")
+                raise SnakesError("No transition is enabled.")
             # When considering multiple independent exponential distributions
             # with parameters (= event-occurrence rates) r_1, r_2, ..., r_n,
             # then the time until the first event in any of them occurs
@@ -185,14 +188,96 @@ def gen_petrinet_class(module: ModuleType) -> Type[snakes.nets.PetriNet]:
                       delay)
             return output
 
+        def step(self,
+                 rng: Optional[Callable[[], float]] = None
+                 ) -> float | None:
+            """
+            Sample and fire the next transition,
+            and return the time passed (since previous firing).
+            Return None if no transition is available.
+
+            @param rng: function samping a random uniformly distributed float.
+                Can be `None`: in this case Python's build-in random
+                number generator is used.
+            @type rng: Optional[Callable[[], float]]
+
+            @return time_passed: float | None, the time passed
+                until the given transition since the previous
+                transition (or start of the simulation).
+                Note that this assumes 
+                memoryless exponentially distributed delays.
+                Returns `None` if no transition is available.
+            """
+            try:
+                trans_name, mode, delay = self.sample_next_transition()
+                self.transition(trans_name).fire(mode)
+                return delay
+            except SnakesError as e:
+                return None
+
     return PetriNet
 
 
+def gen_place_class(module: ModuleType) -> Type[snakes.nets.Place]:
+    """
+    Given a configured version of `snakes.net` as `module`,
+    create a new subclass of `module.Place` 
+    optimized to use exactly 1 integer token.
+
+    @param module: Python module providing a subclassable class `Place`.
+    @type module: types.ModuleType
+    @return: subclass of `snakes.nets.Place` that allows only the `tInteger`
+        data type, and has a function for getting the token count.
+    """
+
+    class Place(module.Place):
+
+        def __init__(self, name: str, tokens: Iterable[Any] | Any = [],
+                     check: type = None, **args):
+            if isinstance(tokens, Iterable) and len(tokens) == 0:
+                tokens = [0]
+            if check is not None and check is not module.tInteger:
+                raise ConstraintError(
+                    "Stochastic Petri Nets only allow `tInteger` type networks.")
+
+            module.Place.__init__(self, name, tokens, module.tInteger, **args)
+            self.__check_token_constraint()
+
+        def get_num_tokens(self) -> int:
+            """
+            Return the value of the current integer token of this Place.
+            Return 0 if no tokens are present (which may happen while
+            a transition is firing and hasn't written a value back).
+
+            @return value of the single integer token of this place, or 0.
+            """
+            if len(self.tokens) == 0:
+                return 0
+            self.__check_token_constraint()
+            return int(self.tokens.items()[0].value)
+
+        def add(self, tokens: Iterable[Any], **args):
+            module.Place.add(self, tokens, **args)
+            self.__check_token_constraint()
+
+        def remove(self, tokens: Iterable[Any], **args):
+            module.Place.remove(self, tokens, **args)
+            self.__check_token_constraint()
+
+
+        def __check_token_constraint(self):
+            if len(self.tokens) > 1:
+                raise ConstraintError(
+                    "Stochastic Petri Nets only allow 1 `tInteger` token per place.")
+        
+    return Place
+
 @snakes.plugins.plugin("snakes.nets")
 def extend(module: ModuleType
-           ) -> Tuple[Type[snakes.nets.Transition], Type[snakes.nets.PetriNet]]:
+           ) -> Tuple[Type[snakes.nets.Transition], Type[snakes.nets.PetriNet], Type[snakes.nets.Place]]:
 
     Transition = gen_transition_class(module)
     PetriNet = gen_petrinet_class(module)
+    Place = gen_place_class(module)
 
-    return Transition, PetriNet
+    return Transition, PetriNet, Place
