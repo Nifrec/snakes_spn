@@ -40,38 +40,6 @@ from snakes.nets import Expression, Token
 import snakes.nets
 
 
-class TransitionStatus:
-
-    def __init__(self, is_running: bool = False, remaining_delay: float | None = None):
-        self.is_running: bool = is_running
-        self.remaining_delay: float | None = remaining_delay
-
-    @property
-    def is_running(self) -> bool:
-        return self.is_running
-
-    @is_running.setter
-    def is_running(self, new_value: bool):
-        self.is_running = new_value
-        if not self.is_running:
-            self.remaining_delay = None
-
-    @property
-    def remaining_delay(self) -> float | None:
-        if not self.is_running:
-            raise RuntimeError("TransitionStatus has no remaining delay "
-                               "while not running.")
-        return self.is_running
-
-    @remaining_delay.setter
-    def remaining_delay(self, new_delay: float | None):
-        if isinstance(new_delay, float) and not self.is_running:
-            raise RuntimeError("Cannot set delay when not running.")
-        if isinstance(new_delay, None) and self.is_running:
-            raise RuntimeError("While running, the delay must be a number.")
-        self.remaining_delay = new_delay
-
-
 def gen_transition_class(module: ModuleType) -> Type[snakes.nets.Transition]:
     """
     Given a configured version of `snakes.net` as `module`,
