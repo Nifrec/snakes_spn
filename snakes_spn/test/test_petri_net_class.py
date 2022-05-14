@@ -114,6 +114,16 @@ class GetNextTransitionTestCase(unittest.TestCase):
 
         # fig.savefig(PLOT_FILENAME)
 
+    def test_error_no_transition_available(self):
+        """
+        `PetriNet.sample_next_transition()` should raise a `SnakesError`
+        when no transition is enabled.
+        """
+        # Only products have tokens, bo reactants are available.
+        spn = setup_advanced_spn(0, 0, 100, 0, 0, 100, 100)
+        with self.assertRaises(SnakesError):
+            spn.sample_next_transition()
+
 
 if __name__ == "__main__":
 
