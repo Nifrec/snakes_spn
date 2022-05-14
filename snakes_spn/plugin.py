@@ -32,7 +32,9 @@ from typing import *
 
 from snakes import ConstraintError
 import snakes.plugins
-from snakes.nets import Transition, Place, PetriNet, Expression, Substitution
+from snakes.data import Substitution
+from snakes.nets import Expression, Token
+import snakes.nets
 
 
 class TransitionStatus:
@@ -66,45 +68,57 @@ class TransitionStatus:
             raise RuntimeError("While running, the delay must be a number.")
         self.remaining_delay = new_delay
 
-
-@snakes.plugins.plugin("snakes.nets")
-def extend(module) -> Tuple[Type[Transition], Type[Place], Type[PetriNet]]:
-
-    return Transition, Place, PetriNet
-
-
-def gen_transition_class(module) -> Type[Transition]:
+def gen_transition_class(module) -> Type[snakes.nets.Transition]:
     """
     Given a configured version of `snakes.net` as `module`,
     create a new subclass of `module.Transition` with SPN features.
 
     @param module: Python module providing a subclassable class `Transition`.
     @type module: ?
-    @return: subclass of `Transition` with SPN features.
+    @return: subclass of `snakes.nets.Transition` with SPN features.
     """
-    print(type(module))
 
     class Transition(module.Transition):
 
-        def __init__(self, **args) -> None:
+        def __init__(self, name, guard, **args) -> None:
             """
 
             @param args: plugin arguments
             @keyword stats: initial status of the Transition 
                 (defaults to `TransitionStatus(False, None)`)
             @type status: Optional[TransitionStatus]
-            @keyword rate_function: expression computing the rate
-                of the exponentially-distributed delay.
+            @keyword rate_function: expression computing the 
+                current rate of the exponentially-distributed delay.
             @type rate_function: Expression
             """
             self._rate = args.pop("rate_function")
             assert isinstance(self._rate, Expression)
-            module.Transition.__init__(**args)
+            module.Transition.__init__(self, name, guard, **args)
 
-            raise NotImplementedError("TODO: add initial status")
-            self._status = None
+        def get_current_rate(self, binding: Substitution) -> float:
+            """
+            Compute the current rate (AKA 'lambda') of the exponentially
+            distributed delay of this transition in a Stochastic Petri Net.
+            Note that `1/rate` gives the expected delay until firing.
 
-        def enabled(self, binding: Substitution, **args) -> bool:
+            @param binding: current evaluation of Variables of incoming
+                arcs in the Petri-Net.
+            @type binding: Substitution
+            @return: float, positive number giving the current rate.
             """
-            """
+            current_rate : Token = self._rate.bind(binding)
+            return float(current_rate.value)
+
+
             
+    return Transition
+
+@snakes.plugins.plugin("snakes.nets")
+def extend(module) -> Tuple[Type[Transition], Type[Place], Type[PetriNet]]:
+
+    Transition = gen_transition_class(module)
+
+    return Transition
+
+
+
