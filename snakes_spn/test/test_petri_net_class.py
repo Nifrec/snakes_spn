@@ -47,7 +47,7 @@ PLOT_FILENAME = os.path.join("snakes_spn", "test", "observed_delays.pdf")
 
 class GetNextTransitionTestCase(unittest.TestCase):
 
-    def test_get_next_transition(self):
+    def test_sample_next_transition(self):
         """
         From the initial concentrations, 
         we would expect rates and probabilities:
