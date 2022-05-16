@@ -29,8 +29,8 @@ of the Pdn-vs-GbPdn bio-modelling case study.
 """
 from spn_simulation_tools.restricted_dict import RestrictedDict
 
-from typing import Dict, Tuple
-
+from typing import Dict, Tuple, TypedDict, Set
+import itertools
 
 from collections import namedtuple
 
@@ -61,64 +61,89 @@ TransNames = namedtuple("TransNames", field_names=trans_field_names,
                         defaults=trans_field_names)
 TRANS = TransNames()
 
+class ArcDict(TypedDict):
+    """
+    Simple record to keep track which places are connected to a transition,
+    and whether they donate or consume tokens.
+    """
+    # Places that neither donate nor consume a token,
+    # but that are still relevant for the guard or the rate of the transition.
+    read_arcs : Tuple[str,...]
+    # Places that donate a token each time the transition fires
+    # (a pre-arc with weight 1 in a formal Petri-Net)
+    pre_arcs : Tuple[str,...]
+    # Places that receive a token each time the transition fires
+    # (a post-arc with weight 1 in a formal Petri-Net)
+    post_arcs : Tuple[str,...]
+
+    def get_all_places(self) -> Tuple[str]:
+        return tuple(itertools.chain(self.read_arcs, self.pre_arcs, self.post_arcs))
+
 # Mapping of transition name to the place_field_name of incoming places.
 TRANS_TO_PLACES: Dict[str, Tuple[str, ...]] = {
-    "prod_gba2":("gba2"),
-    "decay_gba2":("gba2"),
+    "prod_gba2":("gba2",),
+    "decay_gba2":("gba2",),
     "cleave": ("pdn", "gbpdn", "gba2"),
-    "decay_pdn": ("pdn"),
-    "bind_pdn":("pdn", "gr", "gr_pdn"),
-    "unbind_pdn":("pdn", "gr", "gr_pdn"),
-    "decay_gbpdn": ("gbpdn"), 
-    "bind_gbpdn" : ("gbpdn", "gr", "gr_gbpdn"),
-    "unbind_gbpdn":("gbpdn", "gr", "gr_gbpdn"),
+    "decay_pdn": ("pdn",),
+    "bind_pdn":("pdn", "gr_free", "gr_pdn"),
+    "unbind_pdn":("pdn", "gr_free", "gr_pdn"),
+    "decay_gbpdn": ("gbpdn",), 
+    "bind_gbpdn" : ("gbpdn", "gr_free", "gr_gbpdn"),
+    "unbind_gbpdn":("gbpdn", "gr_free", "gr_gbpdn"),
     "recruit_neutrophil":("gr_pdn", "neutrophil_free", "neutrophil_inflaming")
 }
 
-# Mapping that defines (1) the accepted hyperparameter names
-# and (2) what type each hyperparameter ought to be of.
-HYPERPARAM_VARS = {
-    # Rates are strings describing a formula
-    # that are can be used to construct an Expression.
-    # When representing concentrations of certain places,
-    # ensure that variable names from `VARS` are used in these rates.
-    (trans_name + "_rate") : str for trans_name in trans_field_names
-}
+# # Mapping that defines (1) the accepted hyperparameter names
+# # and (2) what type each hyperparameter ought to be of.
+# HYPERPARAM_VARS = {
+#     # Rates are strings describing a formula
+#     # that are can be used to construct an Expression.
+#     # When representing concentrations of certain places,
+#     # ensure that variable names from `VARS` are used in these rates.
+#     (trans_name + "_rate") : str for trans_name in trans_field_names
+# }
 
+# DEFAULT_HYPERPARAM_VALUES = 
 
+RatesDict = TypedDict("RatesDict", {trans:str for trans in TRANS})
 
-def build_pdn_net(hyperparams: Dict,
+def build_pdn_net(rates: RatesDict,
                   place_names: PlaceNames = PLACES,
                   var_names: VariableNames = VARS,
                   trans_names: TransNames = TRANS,
                   init_marking: Dict[str, int] = {name: 0 for name in PLACES},
-                  trans_to_places: Dict[str, Tuple[str, ...]] =TRANS_TO_PLACES
+                  trans_to_places: Dict[str, Tuple[str, ...]] =TRANS_TO_PLACES,
                   ) -> PetriNet:
 
-    place_names_set = set(place_names)
+    place_names_set: Set[str] = set(place_names._fields)
+    trans:str
     for trans, places in TRANS_TO_PLACES.items():
         assert trans in trans_names
-        assert place_names_set.issubset(places)
+        assert place_names_set.issuperset(places), \
+            f"{places} contains unknown places"
 
-    # This automatically checks if the hyperparameter names are known,
-    # and if they of the correct type. Values could still be bogus though.
-    params = RestrictedDict(HYPERPARAM_VARS, hyperparams)
+    # # This automatically checks if the hyperparameter names are known,
+    # # and if they of the correct type. Values could still be bogus though.
+    # params = RestrictedDict(HYPERPARAM_VARS, hyperparams)
     spn = PetriNet("Pdn_vs_GbPdn_competition")
 
     place: str
     for place in place_names:
         spn.add_place(Place(place, init_marking[place], check=tInteger))
     
+    var_names = var_names._asdict()
     for trans in trans_names:
-        rate = Expression(params[trans+"_rate"])
+        rate = Expression(rates[trans])
         places = trans_to_places[trans]
-        guard_str = print()
-        guard = Expression()
-        spn.add
+        guard_str = create_guard(places, var_names)
+        guard = Expression(guard_str)
+        spn.add_transition(Transition(trans, guard=guard, rate_function = rate))
 
+        for place in places:
+            spn.add_input(place_names._asdict()[place], trans, Variable(var_names[place]))
     return spn
 
-def create_guard(place_names: Tuple[str, ...], var_names: VariableNames) -> str:
+def create_guard(place_names: Tuple[str, ...], var_names: Dict[str, str]) -> str:
     """
     Construct a guard indicating that the variables (amount of tokens) 
     of the given places must all be at least 1.
@@ -140,7 +165,6 @@ def create_guard(place_names: Tuple[str, ...], var_names: VariableNames) -> str:
     """
     if len(place_names) == 0:
         return ""
-    var_names = var_names._asdict()
     output = f"{var_names[place_names[0]]}>=1"
     for place in place_names[1:]:
         output += " and "
@@ -148,7 +172,9 @@ def create_guard(place_names: Tuple[str, ...], var_names: VariableNames) -> str:
     return output
 
 if __name__ == "__main__":
+    print(RatesDict)
     print(PLACES)
     print(VARS)
-    spn = build_pdn_net()
+    rates: RatesDict = {trans:"0" for trans in TRANS}
+    spn = build_pdn_net(rates)
     print(spn)
