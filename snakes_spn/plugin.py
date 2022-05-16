@@ -209,7 +209,7 @@ def gen_petrinet_class(module: ModuleType) -> Type[snakes.nets.PetriNet]:
                 Returns `None` if no transition is available.
             """
             try:
-                trans_name, mode, delay = self.sample_next_transition()
+                trans_name, mode, delay = self.sample_next_transition(rng)
                 self.transition(trans_name).fire(mode)
                 return delay
             except SnakesError as e:
