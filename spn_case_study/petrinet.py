@@ -42,24 +42,17 @@ from snk import PetriNet, Place, Expression, Transition, Variable, tInteger
 # Names of the places of the Petri-Net
 place_field_names = ("pdn", "gbpdn", "gba2", "gr_free", "gr_pdn", "gr_gbpdn",
                      "neutrophil_free", "neutrophil_inflaming")
-default_place_names = ("Pdn", "GbPdn", "Gba2", "Gr", "Gr.Pdn", "Gr.GbPdn",
-                       "Free Neutrophils", "Recruited Neutrohils")
-PlaceNames = namedtuple("PlaceNames", field_names=place_field_names,
-                        defaults=default_place_names)
-PLACES = PlaceNames()
+PLACES = place_field_names
 
 # Names of the variables as used in SNAKES to mark arcs.
-VariableNames = namedtuple("VariableNames", field_names=place_field_names,
-                           defaults=["c_" + name for name in place_field_names])
-VARS = VariableNames()
+VariableNames = TypedDict("VariableNames", {name:str for name in place_field_names})
+VARS: VariableNames = {name: f"c_{name}" for name in place_field_names}
 
 # Names of the transitions
 trans_field_names = ("prod_gba2", "decay_gba2", "cleave", "decay_pdn",
                      "bind_pdn", "unbind_pdn", "decay_gbpdn", "bind_gbpdn",
                      "unbind_gbpdn", "recruit_neutrophil")
-TransNames = namedtuple("TransNames", field_names=trans_field_names,
-                        defaults=trans_field_names)
-TRANS = TransNames()
+TRANS = trans_field_names
 
 class ArcDict(TypedDict):
     """
@@ -93,45 +86,29 @@ TRANS_TO_PLACES: Dict[str, Tuple[str, ...]] = {
     "recruit_neutrophil":("gr_pdn", "neutrophil_free", "neutrophil_inflaming")
 }
 
-# # Mapping that defines (1) the accepted hyperparameter names
-# # and (2) what type each hyperparameter ought to be of.
-# HYPERPARAM_VARS = {
-#     # Rates are strings describing a formula
-#     # that are can be used to construct an Expression.
-#     # When representing concentrations of certain places,
-#     # ensure that variable names from `VARS` are used in these rates.
-#     (trans_name + "_rate") : str for trans_name in trans_field_names
-# }
-
-# DEFAULT_HYPERPARAM_VALUES = 
-
 RatesDict = TypedDict("RatesDict", {trans:str for trans in TRANS})
 
-def build_pdn_net(rates: RatesDict,
-                  place_names: PlaceNames = PLACES,
-                  var_names: VariableNames = VARS,
-                  trans_names: TransNames = TRANS,
+def build_spn(rates: Dict[str, ArcDict],
+                  place_names: Tuple[str, ...] = PLACES,
+                  var_names: Dict[str, str] = VARS,
+                  trans_names: Tuple[str, ...] = TRANS,
                   init_marking: Dict[str, int] = {name: 0 for name in PLACES},
                   trans_to_places: Dict[str, Tuple[str, ...]] =TRANS_TO_PLACES,
                   ) -> PetriNet:
 
-    place_names_set: Set[str] = set(place_names._fields)
+    place_names_set: Set[str] = set(place_names)
     trans:str
     for trans, places in TRANS_TO_PLACES.items():
         assert trans in trans_names
         assert place_names_set.issuperset(places), \
             f"{places} contains unknown places"
 
-    # # This automatically checks if the hyperparameter names are known,
-    # # and if they of the correct type. Values could still be bogus though.
-    # params = RestrictedDict(HYPERPARAM_VARS, hyperparams)
     spn = PetriNet("Pdn_vs_GbPdn_competition")
 
     place: str
     for place in place_names:
         spn.add_place(Place(place, init_marking[place], check=tInteger))
     
-    var_names = var_names._asdict()
     for trans in trans_names:
         rate = Expression(rates[trans])
         places = trans_to_places[trans]
@@ -140,7 +117,7 @@ def build_pdn_net(rates: RatesDict,
         spn.add_transition(Transition(trans, guard=guard, rate_function = rate))
 
         for place in places:
-            spn.add_input(place_names._asdict()[place], trans, Variable(var_names[place]))
+            spn.add_input(place, trans, Variable(var_names[place]))
     return spn
 
 def create_guard(place_names: Tuple[str, ...], var_names: Dict[str, str]) -> str:
@@ -153,11 +130,11 @@ def create_guard(place_names: Tuple[str, ...], var_names: Dict[str, str]) -> str
     for the places.
 
     @param place_names: names of places whose variables should
-        be in the guard. Must be a subset of the attributes of `VariableNames`.
+        be in the guard. Must be a subset of the keys of `var_names`.
     @type place_names: Tuple[str, ...]
-    @param var_names: namedtuple mapping place names to their corresponding
+    @param var_names: mapping of place names to their corresponding
         variables.
-    @type var_names: VariableNames
+    @type var_names: Dict[str, str]
 
     @return guard: str, string that evaluates to a logical formula
         being true if and only if the amount of tokens of the 
@@ -176,5 +153,6 @@ if __name__ == "__main__":
     print(PLACES)
     print(VARS)
     rates: RatesDict = {trans:"0" for trans in TRANS}
-    spn = build_pdn_net(rates)
+    spn = build_spn(rates)
     print(spn)
+    spn.draw("test.pdf")
