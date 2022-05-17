@@ -29,20 +29,42 @@ to run N independent repetitions of a simulation.
 Also includes a function to save the output to a file.
 """
 from __future__ import annotations
-from snk import PetriNet, Place, Expression, Transition, Variable, tInteger
+import os
+
+from typing import Optional, Dict, Any
+import json
 
 import snakes_spn.plugin as spn_plugin
 import snakes.plugins
 snakes.plugins.load([spn_plugin], "snakes.nets", "snk")
+from snk import PetriNet, Place, Expression, Transition, Variable, tInteger
 
-
-def run_repeated_experiment(num_reps: int, spn: PetriNet,
-                            max_steps: int, max_time: float
+def run_repeated_experiment(num_reps: int,
+                            spn: PetriNet,
+                            max_steps: Optional[int] = None,
+                            max_time: float = float("inf"),
+                            verbose: bool = True
                             ) -> dict[int, dict[str, list[float | int]]]:
-    raise NotImplementedError("TODO")
+    run_to_log: Dict[int, dict]
+    __print_if(verbose, "Starting repeated experiment "
+               f"with {num_reps} repetitions.")
+    for run in range(num_reps):
+        log = run_simulation(spn, max_steps, max_time)
+        run_to_log[run] = log
+        __print_if(verbose, f"Finished repetition {run+1}/{num_reps}")
+    __print_if(verbose, "All repetitions completed")
+
+    return run_to_log
 
 
-def run_simulation(spn: PetriNet, max_steps: int, max_time: float
+def __print_if(flag: bool, message: Any):
+    if flag:
+        print(message)
+
+
+def run_simulation(spn: PetriNet,
+                   max_steps: Optional[int] = None,
+                   max_time: float = float("inf")
                    ) -> dict[str, list[float | int]]:
     """
     Simulate a SPN using the Gillespie algorithm either until
@@ -55,14 +77,15 @@ def run_simulation(spn: PetriNet, max_steps: int, max_time: float
     @type spn: PetriNet
 
     @param max_steps: maximum amount of transition-firings before the
-        simulation terminates.
-    @type max_steps: int
+        simulation terminates. Use `None` for no limit.
+    @type max_steps: Optional[int]
 
     @param max_time: maximum amount of simulated time.
         This is the cumulative sum of the delays between
         transition firings. The simulation stops after this
         amount of time has passed: it may overshoot it during
         the last step.
+        Default value: `float("inf")`.
     @type max_time: float
 
     @return dict[str, list[float|int]], dictionary mapping
@@ -78,7 +101,14 @@ def run_simulation(spn: PetriNet, max_steps: int, max_time: float
 
     passed_time = 0
     current_timestamp = 0
-    for _ in range(max_steps):
+    if max_steps is not None:
+        remaining_steps = max_steps
+    else:
+        remaining_steps = 1
+
+    while remaining_steps > 0:
+        if max_steps is not None:
+            remaining_steps -= 1
 
         current_timestamp += passed_time
         log["time"].append(current_timestamp)
@@ -92,6 +122,58 @@ def run_simulation(spn: PetriNet, max_steps: int, max_time: float
     return log
 
 
-def store_log(log: dict, filename: str):
-    assert filename.endswith(".json")
-    raise NotImplementedError("TODO")
+def store_log(log: dict, filepath: str):
+    """
+    Store a dictionary to a JSON file.
+
+    @param log: dictionary to save. All contained elements
+        must be JSON serializable.
+    @type log: dict
+    @param filepath: path including filename and .json extension of the
+        file to store the log in.
+    @type filepath: str
+    """
+    file_parent_path = os.path.dirname(filepath)
+    if not os.path.exists(file_parent_path):
+        __gen_directories(file_parent_path)
+    assert filepath.endswith(".json")
+    
+    with open(filepath, "w") as f:
+        json.dump(log, f, sort_keys=True)
+
+def __gen_directories(path: str):
+    """
+    Recursively generate all ancestor directories needed for the given
+    path.
+    """
+    
+    if os.path.exists(path):
+        print(f"Directory {path} exists.")
+        return
+    else:
+        parent = os.path.dirname(path)
+        __gen_directories(parent)
+        print(f"Making directory {path}.")
+        os.mkdir(path)
+
+def load_log(filepath: str) -> dict:
+    """
+    Load a JSON file, convert keys in the top-level
+    directory to `int` if they can be interpreted as such.
+
+    @param log: dictionary to save. All contained elements
+        must be JSON serializable.
+    @type log: dict
+    @return dict: loaded JSON objects, with keys converted to int
+        where possible.
+    """
+    with open(filepath, "r") as f:
+        log: dict = json.load(f)
+    
+    old_keys = tuple(log.keys())
+    for key in old_keys:
+        if isinstance(eval(key), int):
+            log[eval(key)] = log[key]
+            del log[key]
+
+    return log
