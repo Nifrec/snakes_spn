@@ -148,12 +148,10 @@ def __gen_directories(path: str):
     """
     
     if os.path.exists(path):
-        print(f"Directory {path} exists.")
         return
     else:
         parent = os.path.dirname(path)
         __gen_directories(parent)
-        print(f"Making directory {path}.")
         os.mkdir(path)
 
 def load_log(filepath: str) -> dict:

@@ -44,7 +44,8 @@ PLOT_FILENAME = os.path.join("snakes_spn", "test", "run_sim_graph.pdf")
 class StoreLogTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.path = os.path.join("snakes_spn", "test", "dummy_dir", "test_log.json")
+        self.path = os.path.join("snakes_spn", "test", "dummy_dir", 
+                                 "test_log.json")
         self.log = {
             0: {"a":2, "b":4},
             1: [1, 2, 3],
