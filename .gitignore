@@ -128,3 +128,5 @@ dmypy.json
 # Pyre type checker
 .pyre/
 snakes_spn/snakes_spn.code-workspace
+pdn_spn.pdf
+.vscode/launch.json
