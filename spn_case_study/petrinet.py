@@ -31,15 +31,14 @@ of the Pdn-vs-GbPdn bio-modelling case study.
 
 
 from typing import Dict, Iterable, Tuple, TypedDict, Set
-import itertools
-
-from collections import namedtuple
+import warnings
 
 import snakes_spn.plugin as spn_plugin
 from spn_tools.build_spn import build_spn, ArcDict
 import snakes.plugins
-snakes.plugins.load([spn_plugin, "gv"], "snakes.nets", "snk")
-from snk import PetriNet, Place, Expression, Transition, Variable, tInteger
+if True:
+    snakes.plugins.load([spn_plugin, "gv"], "snakes.nets", "snk")
+    from snk import PetriNet, Place, Expression, Transition, Variable, tInteger
 
 # Names of the places of the Petri-Net
 place_field_names = ("pdn", "gbpdn", "gba2", "gr_free", "gr_pdn", "gr_gbpdn",
@@ -94,6 +93,7 @@ def build_gbpdn_spn(place_names: Tuple[str, ...] = PLACES,
 
 
 if __name__ == "__main__":
+    warnings.warn("Inihibition Gba2 missing!")
     spn = build_gbpdn_spn()
     print(spn)
     spn.draw("test.pdf")
