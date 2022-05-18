@@ -154,24 +154,28 @@ def store_log(log: dict, filepath: str):
     """
     file_parent_path = os.path.dirname(filepath)
     if not os.path.exists(file_parent_path):
-        __gen_directories(file_parent_path)
+        gen_directories(file_parent_path)
     assert filepath.endswith(".json")
 
     with open(filepath, "w") as f:
         json.dump(log, f, sort_keys=True)
 
 
-def __gen_directories(path: str):
+def gen_directories(path: str):
     """
-    Recursively generate all ancestor directories needed for the given
-    path.
+    Recursively generate lowest and all ancestor directories 
+    in the given path path.
+
+    @param: path, file system path to generate. Missing directories
+        will be created.
+    @type path: str
     """
 
     if os.path.exists(path):
         return
     else:
         parent = os.path.dirname(path)
-        __gen_directories(parent)
+        gen_directories(parent)
         os.mkdir(path)
 
 
