@@ -35,8 +35,10 @@ import os
 import warnings
 import numpy as np
 from numbers import Number
+import math
 
-from typing import Optional, Dict, Any, Sequence, Tuple, List
+from collections import OrderedDict
+from typing import Optional, Dict, Any, Sequence, Tuple, List, Union
 import json
 
 from matplotlib.figure import Figure
@@ -199,35 +201,56 @@ def load_log(filepath: str) -> dict:
 def plot_results(run_to_log: Dict[int, Dict[str, List[Number]]],
                  x_var: str | None,
                  y_vars: Sequence[str],
+                 num_timeboxes: int,
                  ax: Optional[Axes] = None,
                  conf_ival: float | None = 0.9) -> Axes:
+    """
+    TODO
+
+    -- x assumed to be sorted
+    """
     # if len(x_vars) != len(y_vars):
     #     raise ValueError("Amount of x-variables does not match"
     #         "amount of y-variable collections.")
 
     # num_subplots = len(x_vars)
     # fix, axes = plt.subpl
+    run_to_log = OrderedDict(run_to_log)
 
     if ax is None:
         fig, ax = plt.subplots(nrows=1, ncols=1)
 
-    y_data: Dict[str, List[List[Number]]] = {
-        y_var_name: [log[y_var_name] for log in run_to_log.values()]
-        for y_var_name in y_vars
-    }
-
-    num_timesteps = max([len(run) for run in y_data[y_vars[0]]])
-    # num_repetitions = len(run_to_log)
-    # for y_var_name in y_vars:
-    #     for run in range(num_repetitions):
-    #         run_length = len(y_data[y_var_name][run])
-    #         assert run_length == num_timesteps, \
-    #             f"Expected {}"
-
+    # num_timesteps = max([len(log[x_var]) for log in run_to_log.values()])
+    timestamps: Dict[int, List[float|int]]
     if x_var is None:
-        x_values = list(range(num_timesteps))
+        x_values = list(range(num_timeboxes))
+        timebox_size = 1.0
+        timestamps = {run_idx:x_values for run_idx in run_to_log.keys()}
     else:
-        x_values = np.mean([log[x_var] for log in run_to_log.values()], axis=0)
+        timestamps = {run_idx: log[x_var] for run_idx, log in run_to_log.items()}
+        max_time = max(max(timestamps.values(), key=lambda x : x[-1]))
+        timebox_size = max_time/num_timeboxes
+        x_values = [(i+0.5)*timebox_size for i in range(num_timeboxes)]
+
+    y_data: Dict[str, List[List[Number]]] = {}
+    for y_var_name in y_vars:
+        logs = []
+        for run_idx in run_to_log.keys():
+            timestamps_vector = timestamps[run_idx]
+            run_values = run_to_log[run_idx][y_var_name]
+            aggregated_run_values = aggregate_in_timeboxes(
+                timestamps_vector, run_values, num_timeboxes, timebox_size)
+            logs.append(aggregated_run_values)
+
+        print(logs)
+        y_data[y_var_name] = logs
+
+    # y_data: Dict[str, List[List[Number]]] = {
+    #     y_var_name: [log[y_var_name] for log in run_to_log.values()]
+    #     for y_var_name in y_vars
+    # }
+
+    
 
     for y_var_name in y_vars:
         y_mean_values = np.mean(y_data[y_var_name], axis=0)
@@ -243,6 +266,10 @@ def plot_results(run_to_log: Dict[int, Dict[str, List[Number]]],
                                                          scale=y_std_values)
             ax.fill_between(x_values, y_ival_min, y_ival_max,
                             alpha=0.35)
+
+    ax.legend()
+    if x_var is not None:
+        ax.set_xlabel(x_var)
 
     return ax
 
@@ -310,6 +337,10 @@ def aggregate_in_timeboxes(timestamps: Sequence[float],
         num_points_added += 1
 
     __agg_curr_timebox(output, curr_timebox, num_points_added)
+
+    if curr_timebox != num_timeboxes-1:
+        for remaining_box in range(curr_timebox, num_timeboxes):
+            output[remaining_box] = output[curr_timebox]
     return output
 
 

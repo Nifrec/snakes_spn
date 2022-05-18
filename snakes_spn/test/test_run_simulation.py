@@ -105,8 +105,12 @@ class MultiRunPlotTestCase(unittest.TestCase):
             store_log(run_to_log, self.LOG_PATH)
         self.log = load_log(self.LOG_PATH)
 
+    @unittest.skip("Debug AggInTimeboxes first")
     def test_plot_results(self):
-        ax = plot_results(self.log, "time", ["source", "sink"])
+        num_timeboxes = max(map(lambda x: len(x["time"]), self.log.values()))
+        num_timeboxes //= 2
+        print(num_timeboxes)
+        ax = plot_results(self.log, "time", ["source", "sink"], num_timeboxes)
         plt.show()
 
 
@@ -115,7 +119,7 @@ class AggregateInTimeboxesTestCase(unittest.TestCase):
     Tests for `aggregate_in_timeboxes()`.
     """
 
-    def test_aggregate_in_timeboxes_1(self):
+    def test_aggregate_in_timeboxes_no_vals_for_first_boxes(self):
         """
         Corner case: no measurements for first few boxes.
 
@@ -137,6 +141,34 @@ class AggregateInTimeboxesTestCase(unittest.TestCase):
         num_timeboxes = 7
         timebox_size = 0.5
         expected = [0, 0, 13/3.0, 13/3.0, 7.5, 9, 10]
+
+        result = aggregate_in_timeboxes(timestamps, measurements, num_timeboxes,
+                                        timebox_size)
+        np.testing.assert_allclose(result, expected)
+
+    def test_aggregate_in_timeboxes_no_vals_last_boxes(self):
+        """
+        Corner case: no measurements available for the last timeboxes.
+
+        Measurements:
+        [1,     2,      3,      4]
+        Timestamps:
+        [0.3,   0.7,    0.9,    1.1]
+
+
+        Num timeboxes: 7
+        Timebox size: 0.5
+
+        Expected:
+        [1,     2.5,    4,      4,      4,      4,      4]
+        End times:
+        [0.5,   1.0,    1.5,    2.0,    2.5,    3.0,    3.5]
+        """
+        measurements = [1,     2,      3,      4]
+        timestamps = [0.3,   0.7,    0.9,    1.1]
+        num_timeboxes = 7
+        timebox_size = 0.5
+        expected = [1,     2.5,    4,      4,      4,      4,      4]
 
         result = aggregate_in_timeboxes(timestamps, measurements, num_timeboxes,
                                         timebox_size)
