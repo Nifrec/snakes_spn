@@ -26,28 +26,35 @@ If not, see <https://www.gnu.org/licenses/>.
 File content:
 Tests for the file `spn_tools/run_simulation.py`.
 """
+
 import json
 import shutil
-from spn_tools.run_simulation import run_simulation, store_log, load_log
+import numpy as np
+from spn_tools.run_simulation import (aggregate_in_timeboxes, run_simulation, store_log, load_log,
+                                      run_repeated_experiment, plot_results)
 
 import unittest
 import matplotlib.pyplot as plt
 import os
 
+
 import snakes_spn.plugin as spn_plugin
 import snakes.plugins
-snakes.plugins.load([spn_plugin], "snakes.nets", "snk")
-from snk import PetriNet, Place, Expression, Transition, Variable, tInteger
+# To prevent autoformatter from putting `from snk ...` at the top of the file.
+if True:
+    snakes.plugins.load([spn_plugin], "snakes.nets", "snk")
+    from snk import PetriNet, Place, Expression, Transition, Variable, tInteger
 
 PLOT_FILENAME = os.path.join("snakes_spn", "test", "run_sim_graph.pdf")
+
 
 class StoreLogTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.path = os.path.join("snakes_spn", "test", "dummy_dir", 
+        self.path = os.path.join("snakes_spn", "test", "dummy_dir",
                                  "test_log.json")
         self.log = {
-            0: {"a":2, "b":4},
+            0: {"a": 2, "b": 4},
             1: [1, 2, 3],
             2: "Hello world!"
         }
@@ -61,8 +68,9 @@ class StoreLogTestCase(unittest.TestCase):
         loaded_log = load_log(self.path)
         self.assertDictEqual(loaded_log, self.log)
 
+
 class RunSimulationTestCase(unittest.TestCase):
-    
+
     def test_run_simulation_til_dead_state(self):
         """
         Use a simple SPN that has a clear fixed amount
@@ -80,11 +88,62 @@ class RunSimulationTestCase(unittest.TestCase):
                                  [x for x in range(expected_len)])
         self.assertSequenceEqual(
             output["source"], [x for x in range(num_input_tokens, -1, -1)])
-        
+
         for i in range(expected_len - 1):
             self.assertGreater(output["time"][i+1], output["time"][i])
 
-def plot_results():
+
+class MultiRunPlotTestCase(unittest.TestCase):
+    LOG_PATH = os.path.join("snakes_spn", "test",
+                            "run_sim_files", "run_to_log.json")
+
+    def setUp(self):
+        if not os.path.exists(self.LOG_PATH):
+            spn = make_simple_spn()
+            self.num_runs = 30
+            run_to_log = run_repeated_experiment(self.num_runs, spn)
+            store_log(run_to_log, self.LOG_PATH)
+        self.log = load_log(self.LOG_PATH)
+
+    def test_plot_results(self):
+        ax = plot_results(self.log, "time", ["source", "sink"])
+        plt.show()
+
+
+class AggregateInTimeboxesTestCase(unittest.TestCase):
+    """
+    Tests for `aggregate_in_timeboxes()`.
+    """
+
+    def test_aggregate_in_timeboxes_1(self):
+        """
+        Corner case: no measurements for first few boxes.
+
+        Measurements:
+        [3,     4,      6,      7,      8,      9,      10]
+        Timestamps:
+        [1,     1.1,    1.2,    2.1,    2.2,    2.7,    3.0]
+
+        Num timeboxes: 7
+        Timebox size: 0.5
+
+        Expected:
+        [0,     0,      13/3,   13/3,   7.5,    9,      10]
+        End times:
+        [0.5,   1.0,    1.5,    2.0,    2.5,    3.0,    3.5]
+        """
+        measurements = [3, 4, 6, 7, 8, 9, 10]
+        timestamps = [1,  1.1, 1.2, 2.1, 2.2, 2.7, 3.0]
+        num_timeboxes = 7
+        timebox_size = 0.5
+        expected = [0, 0, 13/3.0, 13/3.0, 7.5, 9, 10]
+
+        result = aggregate_in_timeboxes(timestamps, measurements, num_timeboxes,
+                                        timebox_size)
+        np.testing.assert_allclose(result, expected)
+
+
+def plot_run_simulation_results():
     output = run_simulation(make_simple_spn())
 
     fig, axes = plt.subplots(nrows=2, ncols=1)
@@ -108,7 +167,7 @@ def plot_results():
     plt.show()
 
 
-def make_simple_spn(num_input_tokens: int=36) -> PetriNet:
+def make_simple_spn(num_input_tokens: int = 36) -> PetriNet:
     """
     Construct a simple network with one transition"
     """
@@ -117,8 +176,8 @@ def make_simple_spn(num_input_tokens: int=36) -> PetriNet:
     spn.add_place(Place("source", num_input_tokens, tInteger))
     spn.add_place(Place("sink", 0, tInteger))
     spn.add_transition(Transition("source_to_sink",
-                                    guard=Expression("c_source>=1"),
-                                    rate_function=Expression("c_source")))
+                                  guard=Expression("c_source>=1"),
+                                  rate_function=Expression("c_source")))
 
     spn.add_input("source", "source_to_sink", Variable("c_source"))
     spn.add_input("sink", "source_to_sink", Variable("c_sink"))
@@ -127,9 +186,10 @@ def make_simple_spn(num_input_tokens: int=36) -> PetriNet:
     spn.add_output("sink", "source_to_sink", Expression("c_sink+1"))
     return spn
 
+
 if __name__ == "__main__":
 
     if not os.path.exists(PLOT_FILENAME):
-        plot_results()
+        plot_run_simulation_results()
 
     unittest.main()

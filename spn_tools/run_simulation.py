@@ -29,15 +29,30 @@ to run N independent repetitions of a simulation.
 Also includes a function to save the output to a file.
 """
 from __future__ import annotations
-import os
 
-from typing import Optional, Dict, Any
+
+import os
+import warnings
+import numpy as np
+from numbers import Number
+
+from typing import Optional, Dict, Any, Sequence, Tuple, List
 import json
+
+from matplotlib.figure import Figure
+from matplotlib.axes import Axes
+import matplotlib.pyplot as plt
+from scipy import stats
+from scipy.signal import savgol_filter
+
 
 import snakes_spn.plugin as spn_plugin
 import snakes.plugins
-snakes.plugins.load([spn_plugin], "snakes.nets", "snk")
-from snk import PetriNet, Place, Expression, Transition, Variable, tInteger
+# To prevent autoformatter from putting `from snk ...` at the top of the file.
+if True:
+    snakes.plugins.load([spn_plugin], "snakes.nets", "snk")
+    from snk import PetriNet, Place, Expression, Transition, Variable, tInteger
+
 
 def run_repeated_experiment(num_reps: int,
                             spn: PetriNet,
@@ -45,10 +60,12 @@ def run_repeated_experiment(num_reps: int,
                             max_time: float = float("inf"),
                             verbose: bool = True
                             ) -> dict[int, dict[str, list[float | int]]]:
-    run_to_log: Dict[int, dict]
+    run_to_log: Dict[int, dict] = {}
     __print_if(verbose, "Starting repeated experiment "
                f"with {num_reps} repetitions.")
+    init_marking = spn.get_marking()
     for run in range(num_reps):
+        spn.set_marking(init_marking)
         log = run_simulation(spn, max_steps, max_time)
         run_to_log[run] = log
         __print_if(verbose, f"Finished repetition {run+1}/{num_reps}")
@@ -137,22 +154,24 @@ def store_log(log: dict, filepath: str):
     if not os.path.exists(file_parent_path):
         __gen_directories(file_parent_path)
     assert filepath.endswith(".json")
-    
+
     with open(filepath, "w") as f:
         json.dump(log, f, sort_keys=True)
+
 
 def __gen_directories(path: str):
     """
     Recursively generate all ancestor directories needed for the given
     path.
     """
-    
+
     if os.path.exists(path):
         return
     else:
         parent = os.path.dirname(path)
         __gen_directories(parent)
         os.mkdir(path)
+
 
 def load_log(filepath: str) -> dict:
     """
@@ -167,7 +186,7 @@ def load_log(filepath: str) -> dict:
     """
     with open(filepath, "r") as f:
         log: dict = json.load(f)
-    
+
     old_keys = tuple(log.keys())
     for key in old_keys:
         if isinstance(eval(key), int):
@@ -175,3 +194,134 @@ def load_log(filepath: str) -> dict:
             del log[key]
 
     return log
+
+
+def plot_results(run_to_log: Dict[int, Dict[str, List[Number]]],
+                 x_var: str | None,
+                 y_vars: Sequence[str],
+                 ax: Optional[Axes] = None,
+                 conf_ival: float | None = 0.9) -> Axes:
+    # if len(x_vars) != len(y_vars):
+    #     raise ValueError("Amount of x-variables does not match"
+    #         "amount of y-variable collections.")
+
+    # num_subplots = len(x_vars)
+    # fix, axes = plt.subpl
+
+    if ax is None:
+        fig, ax = plt.subplots(nrows=1, ncols=1)
+
+    y_data: Dict[str, List[List[Number]]] = {
+        y_var_name: [log[y_var_name] for log in run_to_log.values()]
+        for y_var_name in y_vars
+    }
+
+    num_timesteps = max([len(run) for run in y_data[y_vars[0]]])
+    # num_repetitions = len(run_to_log)
+    # for y_var_name in y_vars:
+    #     for run in range(num_repetitions):
+    #         run_length = len(y_data[y_var_name][run])
+    #         assert run_length == num_timesteps, \
+    #             f"Expected {}"
+
+    if x_var is None:
+        x_values = list(range(num_timesteps))
+    else:
+        x_values = np.mean([log[x_var] for log in run_to_log.values()], axis=0)
+
+    for y_var_name in y_vars:
+        y_mean_values = np.mean(y_data[y_var_name], axis=0)
+
+        ax.plot(x_values, y_mean_values, label=y_var_name)
+        warnings.warn("You can't average out on the time like that...\n"
+                      "Maybe splitting it in intervals and aggregating each would work.")
+        if conf_ival is not None:
+            y_std_values = np.std(y_data[y_var_name], axis=0, ddof=1)
+            print(y_std_values)
+            y_ival_min, y_ival_max = stats.norm.interval(conf_ival,
+                                                         loc=y_mean_values,
+                                                         scale=y_std_values)
+            ax.fill_between(x_values, y_ival_min, y_ival_max,
+                            alpha=0.35)
+
+    return ax
+
+
+def aggregate_in_timeboxes(timestamps: Sequence[float],
+                           measurements: Sequence[float],
+                           num_timeboxes: int,
+                           timebox_size: float) -> Sequence[float]:
+    """
+    Take `m` pairs of a timestamp `t` and a measurement `y`
+    (where the timestamps may not be evenly spaced!),
+    and compute an aggregation with evenly spaced time boxes.
+    In particular, return a vector `v` of `num_timeboxes`
+    values, where each value `v[i]` is the average of all
+    measurements with timestamps `t` s.t.
+    `i*timebox_size <= t < (i+1)*timebox_size`.
+    If no measurement is available for some time-interval
+    `[i*timebox_size, (i+1)*timebox_size]`, use the value `v[i-1]` instead.
+    If the first measurements are missing, simply use 0 instead.
+
+    NOTE: it is assumed that the timestamps and the measurements
+    are sorted in chronological order. If this is not the case,
+    the output will be incorrect.
+
+    @param timestamps: vector of timestamps corresponding to each measurement.
+    @type timestamps: Sequence[float]
+
+    @param measurements: vector of measured values
+        corresponding to the timestamps.
+    @type measurements: Sequence[float]
+
+    @param num_timeboxes: amount of indices in the output,
+        corresponding to the time-intervals with `timebox_size` spacing.
+    @type num_timeboxes: int
+
+    @param timebox_size: width of each time interval
+        (i.e., amount of time between beginnings of consecutive timeboxes).
+    @type timebox_size: float
+
+    @return: Sequence[float], aggregated measurements.
+    """
+    assert len(measurements) == len(timestamps)
+
+    timebox_endtimes = [i * timebox_size for i in range(1, 1+num_timeboxes)]
+
+    # Index of the current timebox
+    curr_timebox = 0
+    # Amount of measurements added to the current timebox
+    # (Needed for averaging them later -- they are just summed up)
+    num_points_added = 0
+
+    output = [0 for _ in range(num_timeboxes)]
+
+    for i in range(len(measurements)):
+        while timestamps[i] >= timebox_endtimes[curr_timebox]:
+            __agg_curr_timebox(output, curr_timebox, num_points_added)
+
+            num_points_added = 0
+            curr_timebox += 1
+
+            if curr_timebox >= num_timeboxes:
+                return output
+
+        output[curr_timebox] += measurements[i]
+        num_points_added += 1
+
+    __agg_curr_timebox(output, curr_timebox, num_points_added)
+    return output
+
+
+def __agg_curr_timebox(output: Sequence[float],
+                       curr_timebox: int,
+                       num_points_added: int):
+    """
+    Resolve the definite aggregated value for the current timebox.
+    """
+    if num_points_added == 0 and curr_timebox == 0:
+        output[curr_timebox] = 0
+    elif num_points_added == 0:
+        output[curr_timebox] = output[curr_timebox-1]
+    elif num_points_added > 0:
+        output[curr_timebox] = output[curr_timebox]/num_points_added
