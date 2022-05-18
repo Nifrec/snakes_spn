@@ -28,16 +28,40 @@ Tools for simulating the Pdn-vs-GbPdn SPN for a wide variety of
 different parameter combinations.
 """
 from typing import TypeVar, Dict, Sequence, List, Iterator
+from numbers import Number
 
+import os
+import warnings
+from spn_tools.run_simulation import (store_log, load_log,
+                                      run_repeated_experiment, gen_directories)
+from spn_case_study.petrinet import build_gbpdn_spn
+
+
+import snakes_spn.plugin as spn_plugin
+import snakes.plugins
+# To prevent autoformatter from putting `from snk ...` at the top of the file.
+if True:
+    snakes.plugins.load([spn_plugin], "snakes.nets", "snk")
+    from snk import PetriNet, Place, Expression, Transition, Variable, tInteger
 
 def run_full_grid_search(rates_all_choices: Dict[str, Sequence[str]],
                          init_markings_all_choices: Dict[str, Sequence[int]],
                          top_level_save_dir: str,
                          num_repetitions: int
                          ):
-    # Run repeated sim
-    # store log and union of rates and init_markings (all as JSON dicts).
-    raise NotImplementedError()
+    warnings.warn("TODO: Docstring missing!")
+    if not os.path.exists(top_level_save_dir):
+        gen_directories(top_level_save_dir)
+
+    exp_idx = 0
+    for rates in get_all_combos(rates_all_choices):
+        for init_markings in get_all_combos(init_markings_all_choices):
+            print(f"Starting experiment {exp_idx}")
+            dirname = os.path.join(top_level_save_dir, f"exp_{exp_idx}")
+            os.mkdir(dirname)
+            run_experiment(rates, init_markings, dirname, num_repetitions)
+            exp_idx+=1
+
 
 
 def run_experiment(rates: Dict[str, str],
@@ -49,7 +73,7 @@ def run_experiment(rates: Dict[str, str],
     Create a Pdn-vs-GbPdn network with the given rates and initial markings,
     and perform `num_repetitions` independent repetitions.
     Save the log and the hyperparameters
-    as "log.json" and "hyperparameters.json" respectively
+    as "logs.json" and "hyperparameters.json" respectively
     in the directory `save_dir`.
     Also return the log.
 
@@ -76,7 +100,15 @@ def run_experiment(rates: Dict[str, str],
         and an extra variable "time" mapping to the timestamps
         of simulated-time at each timestep.
     """
-    raise NotImplementedError("TODO")
+    spn = build_gbpdn_spn(init_marking=init_markings, rates=rates)
+    run_to_log = run_repeated_experiment(num_repetitions, spn, verbose=True)
+    hyperparams = rates.copy()
+    hyperparams.update(init_markings)
+
+    store_log(run_to_log, os.path.join(save_dir, "logs.json"))
+    store_log(hyperparams, os.path.join(save_dir, "hyperparameters.json"))
+
+    return run_to_log
 
 
 KeyType = TypeVar("KeyType")
