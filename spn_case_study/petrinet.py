@@ -56,7 +56,7 @@ TRANS = trans_field_names
 
 # Mapping of transition name to the place_field_name of incoming places.
 TRANS_TO_PLACES: Dict[str, ArcDict] = {
-    "prod_gba2": {"pre_arcs": ("gr_pdn",),
+    "prod_gba2": {"read_arcs": ("gr_pdn",),
                   "post_arcs": ("gba2",)},
     "decay_gba2": {"pre_arcs": ("gba2",), },
     "cleave": {"read_arcs": ("gba2",),
@@ -95,7 +95,6 @@ def build_gbpdn_spn(place_names: Tuple[str, ...] = PLACES,
 
 
 if __name__ == "__main__":
-    warnings.warn("Inihibition Gba2 missing!")
     spn = build_gbpdn_spn()
     print(spn)
-    spn.draw("test.pdf")
+    spn.draw("pdn_spn.pdf")
