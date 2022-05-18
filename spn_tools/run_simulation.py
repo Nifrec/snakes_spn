@@ -38,7 +38,7 @@ from numbers import Number
 import math
 
 from collections import OrderedDict
-from typing import Optional, Dict, Any, Sequence, Tuple, List, Union
+from typing import Literal, Optional, Dict, Any, Sequence, Tuple, List, Union
 import json
 
 from matplotlib.figure import Figure
@@ -203,24 +203,18 @@ def plot_results(run_to_log: Dict[int, Dict[str, List[Number]]],
                  y_vars: Sequence[str],
                  num_timeboxes: int,
                  ax: Optional[Axes] = None,
+                 interval_type: Literal["min_max", "confidence"] | None = "min_max",
                  conf_ival: float | None = 0.9) -> Axes:
     """
     TODO
 
     -- x assumed to be sorted
     """
-    # if len(x_vars) != len(y_vars):
-    #     raise ValueError("Amount of x-variables does not match"
-    #         "amount of y-variable collections.")
-
-    # num_subplots = len(x_vars)
-    # fix, axes = plt.subpl
     run_to_log = OrderedDict(run_to_log)
 
     if ax is None:
         fig, ax = plt.subplots(nrows=1, ncols=1)
 
-    # num_timesteps = max([len(log[x_var]) for log in run_to_log.values()])
     timestamps: Dict[int, List[float|int]]
     if x_var is None:
         x_values = list(range(num_timeboxes))
@@ -242,28 +236,23 @@ def plot_results(run_to_log: Dict[int, Dict[str, List[Number]]],
                 timestamps_vector, run_values, num_timeboxes, timebox_size)
             logs.append(aggregated_run_values)
 
-        print(logs)
         y_data[y_var_name] = logs
-
-    # y_data: Dict[str, List[List[Number]]] = {
-    #     y_var_name: [log[y_var_name] for log in run_to_log.values()]
-    #     for y_var_name in y_vars
-    # }
-
-    
 
     for y_var_name in y_vars:
         y_mean_values = np.mean(y_data[y_var_name], axis=0)
 
         ax.plot(x_values, y_mean_values, label=y_var_name)
-        warnings.warn("You can't average out on the time like that...\n"
-                      "Maybe splitting it in intervals and aggregating each would work.")
-        if conf_ival is not None:
+        if interval_type == "min_max":
+            y_ival_min = np.min(y_data[y_var_name], axis=0)
+            y_ival_max = np.max(y_data[y_var_name], axis=0)
+        elif interval_type == "confidence":
             y_std_values = np.std(y_data[y_var_name], axis=0, ddof=1)
-            print(y_std_values)
             y_ival_min, y_ival_max = stats.norm.interval(conf_ival,
                                                          loc=y_mean_values,
                                                          scale=y_std_values)
+        elif interval_type is not None:
+            raise ValueError("Unknown interval type '{interval_type}'.")
+        if interval_type is not None:
             ax.fill_between(x_values, y_ival_min, y_ival_max,
                             alpha=0.35)
 

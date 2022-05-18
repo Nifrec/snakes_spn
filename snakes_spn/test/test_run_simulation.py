@@ -105,7 +105,6 @@ class MultiRunPlotTestCase(unittest.TestCase):
             store_log(run_to_log, self.LOG_PATH)
         self.log = load_log(self.LOG_PATH)
 
-    @unittest.skip("Debug AggInTimeboxes first")
     def test_plot_results(self):
         num_timeboxes = max(map(lambda x: len(x["time"]), self.log.values()))
         num_timeboxes //= 2
