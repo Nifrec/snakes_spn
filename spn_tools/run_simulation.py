@@ -171,7 +171,7 @@ def gen_directories(path: str):
     @type path: str
     """
 
-    if os.path.exists(path):
+    if os.path.exists(path) or path=="":
         return
     else:
         parent = os.path.dirname(path)
