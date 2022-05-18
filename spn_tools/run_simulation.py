@@ -199,32 +199,94 @@ def load_log(filepath: str) -> dict:
 
 
 def plot_results(run_to_log: Dict[int, Dict[str, List[Number]]],
-                 x_var: str | None,
+                 x_var: str,
                  y_vars: Sequence[str],
                  num_timeboxes: int,
                  ax: Optional[Axes] = None,
-                 interval_type: Literal["min_max", "confidence"] | None = "min_max",
+                 interval_type: Literal["min_max", "confidence"] | None \
+                     = "min_max",
                  conf_ival: float | None = 0.9) -> Axes:
     """
-    TODO
+    Create plots of desired variables,
+    averaged over multiple independent runs.
+    The x-variable gives the timestamps, which do not need to be the
+    same for each run.
 
-    -- x assumed to be sorted
+    Takes as input a mapping of a run index to a dictionary
+    mapping a variable name to the recorded values during that run.
+    The y-variables and the x_var must be keys in these dictionaries.
+    Values are aggregated in time-boxes of uniform length
+    for each run
+    (like a histogram, but then taking the average value instead
+    of the number of observations),
+    and then averaged over the different runs.
+
+    The x_var gives the variable to use for the horizontal axis.
+    This will usually be the time variable.
+    The data in each run of this variable must be sorted
+    (usually this means ascending time),
+    and the maximum value observed over the whole dataset for this
+    variable is used to determine the width of the time-boxes
+    (i.e., if the maximum value is `T` then the width of the time-boxes
+        is `T / num_timeboxes`).
+    In the plot, also the x-variable is aggregated in time-boxes.
+    (This is needed to average out the y-values, which does
+    not work out of the box for measurements with a different set of
+    timestamps each run!).
+
+    @param run_to_log: collection of independent repetitions of an experiment,
+        each repetition is stored as a dictionary mapping the name
+        of a variable to a vector of observed values
+        (in chronological order, by x-variable). 
+    @type run_to_log: Dict[int, Dict[str, List[Number]]]
+
+    @param x_var: name of the x-variable ('time-variable'),
+        key in the dictionaries in `run_to_log`.
+    @type x_var: str
+
+    @param y_vars: names of the y-variables to plot.
+        All must be keys in `run_to_log`.
+        Each will be plotted in the same subfigure,
+        and labelled by their name.
+    @type y_vars: Sequence[str]
+
+    @param ax: optional Matplotlib `Axes` instance to plot graph in.
+        If `None`, a new `Axes` instance is created and returned.
+    @type ax: matplotlib.axes.Axes | None
+
+    @param interval_type: uncertainty interval around the graph 
+        mean-value lines. Can be left out (value `None`),
+        the minimum and maximum observed values in each timebox
+        (value `'min_max'`), or a `100*conf_ival`% confidence interval
+        using a local normal approximation in each timebox.
+    @type interval_type: Literal["min_max", "confidence"] | None
+
+    @param conf_ival: value in [0, 1]
+        such that the width of the uncertainty interval
+        around the graphs is a `100*conf_ival`% confidence interval
+        around the mean. Only used when `interval_type='confidence'`.
+    @type conf_ival: float | None
+
+    @return Axes: Matplotlib axis in which the graphs are drawn.
+        This is the input argument `ax` if it was not `None`,
+        and a new `Axes` otherwise.
     """
+    warnings.warn("TODO: cleanup!")
     run_to_log = OrderedDict(run_to_log)
 
     if ax is None:
         fig, ax = plt.subplots(nrows=1, ncols=1)
 
     timestamps: Dict[int, List[float|int]]
-    if x_var is None:
-        x_values = list(range(num_timeboxes))
-        timebox_size = 1.0
-        timestamps = {run_idx:x_values for run_idx in run_to_log.keys()}
-    else:
-        timestamps = {run_idx: log[x_var] for run_idx, log in run_to_log.items()}
-        max_time = max(max(timestamps.values(), key=lambda x : x[-1]))
-        timebox_size = max_time/num_timeboxes
-        x_values = [(i+0.5)*timebox_size for i in range(num_timeboxes)]
+    # if x_var is None:
+    #     x_values = list(range(num_timeboxes))
+    #     timebox_size = 1.0
+    #     timestamps = {run_idx:x_values for run_idx in run_to_log.keys()}
+    # else:
+    timestamps = {run_idx: log[x_var] for run_idx, log in run_to_log.items()}
+    max_time = max(max(timestamps.values(), key=lambda x : x[-1]))
+    timebox_size = max_time/num_timeboxes
+    x_values = [(i+0.5)*timebox_size for i in range(num_timeboxes)]
 
     y_data: Dict[str, List[List[Number]]] = {}
     for y_var_name in y_vars:
