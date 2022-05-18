@@ -203,8 +203,8 @@ def plot_results(run_to_log: Dict[int, Dict[str, List[Number]]],
                  y_vars: Sequence[str],
                  num_timeboxes: int,
                  ax: Optional[Axes] = None,
-                 interval_type: Literal["min_max", "confidence"] | None \
-                     = "min_max",
+                 interval_type: Literal["min_max", "confidence"] | None
+                 = "min_max",
                  conf_ival: float | None = 0.9) -> Axes:
     """
     Create plots of desired variables,
@@ -277,28 +277,14 @@ def plot_results(run_to_log: Dict[int, Dict[str, List[Number]]],
     if ax is None:
         fig, ax = plt.subplots(nrows=1, ncols=1)
 
-    timestamps: Dict[int, List[float|int]]
-    # if x_var is None:
-    #     x_values = list(range(num_timeboxes))
-    #     timebox_size = 1.0
-    #     timestamps = {run_idx:x_values for run_idx in run_to_log.keys()}
-    # else:
+    timestamps: Dict[int, List[float | int]]
     timestamps = {run_idx: log[x_var] for run_idx, log in run_to_log.items()}
-    max_time = max(max(timestamps.values(), key=lambda x : x[-1]))
+    max_time = max(max(timestamps.values(), key=lambda x: x[-1]))
     timebox_size = max_time/num_timeboxes
     x_values = [(i+0.5)*timebox_size for i in range(num_timeboxes)]
 
-    y_data: Dict[str, List[List[Number]]] = {}
-    for y_var_name in y_vars:
-        logs = []
-        for run_idx in run_to_log.keys():
-            timestamps_vector = timestamps[run_idx]
-            run_values = run_to_log[run_idx][y_var_name]
-            aggregated_run_values = aggregate_in_timeboxes(
-                timestamps_vector, run_values, num_timeboxes, timebox_size)
-            logs.append(aggregated_run_values)
-
-        y_data[y_var_name] = logs
+    y_data = __find_y_data(y_vars, timestamps, run_to_log, num_timeboxes,
+                           timebox_size)
 
     for y_var_name in y_vars:
         y_mean_values = np.mean(y_data[y_var_name], axis=0)
@@ -323,6 +309,31 @@ def plot_results(run_to_log: Dict[int, Dict[str, List[Number]]],
         ax.set_xlabel(x_var)
 
     return ax
+
+
+def __find_y_data(y_vars: Sequence[str],
+                  timestamps: Dict[int, List[float]],
+                  run_to_log: Dict[int, Dict[str, List[Number]]],
+                  num_timeboxes: int,
+                  timebox_size: float) -> Dict[str, List[List[Number]]]:
+    """
+    For each requested variable, collect all the vectors
+    of observations in a list (i.e., a matrix, whose rows
+    are the measurements during a specific experiment),
+    and apply the timebox-aggregation.
+    """
+    y_data: Dict[str, List[List[Number]]] = {}
+    for y_var_name in y_vars:
+        logs = []
+        for run_idx in run_to_log.keys():
+            timestamps_vector = timestamps[run_idx]
+            run_values = run_to_log[run_idx][y_var_name]
+            aggregated_run_values = aggregate_in_timeboxes(
+                timestamps_vector, run_values, num_timeboxes, timebox_size)
+            logs.append(aggregated_run_values)
+
+        y_data[y_var_name] = logs
+    return y_data
 
 
 def aggregate_in_timeboxes(timestamps: Sequence[float],
