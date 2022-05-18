@@ -27,21 +27,62 @@ File content:
 Tools for simulating the Pdn-vs-GbPdn SPN for a wide variety of
 different parameter combinations.
 """
-from typing import Generic, TypeVar, Dict, Sequence, List, Iterator
+from typing import TypeVar, Dict, Sequence, List, Iterator
 
 
-def gen_all_parameter_combos(rates, init_markings) -> Iterator:
-    raise NotImplementedError()
-
-
-def run_experiment():
+def run_full_grid_search(rates_all_choices: Dict[str, Sequence[str]],
+                         init_markings_all_choices: Dict[str, Sequence[int]],
+                         top_level_save_dir: str,
+                         num_repetitions: int
+                         ):
     # Run repeated sim
     # store log and union of rates and init_markings (all as JSON dicts).
     raise NotImplementedError()
 
 
+def run_experiment(rates: Dict[str, str],
+                   init_markings: Dict[str, int],
+                   save_dir: str,
+                   num_repetitions: int
+                   ) -> Dict[int, Dict[str, Sequence[Number]]]:
+    """
+    Create a Pdn-vs-GbPdn network with the given rates and initial markings,
+    and perform `num_repetitions` independent repetitions.
+    Save the log and the hyperparameters
+    as "log.json" and "hyperparameters.json" respectively
+    in the directory `save_dir`.
+    Also return the log.
+
+    @param rates: mapping of transition names to rate formula
+        (must be parsable by SNAKES's `Expression` class,
+        it may reference variables associated with the places
+        that have arcs to the transition).
+    @type rates: Dict[str, str]
+
+    @param init_markings: mapping of places to their 
+        initial integer token count.
+    @type init_markings:  Dict[str, int]
+
+    @param save_dir: path to directory 
+        to save the log and the hyperparameter JSON files in.
+    @type save_dir: str
+
+    @param num_repetitions: amount of independent repetitions of the simulation.
+    @type num_repetitions: int
+
+    @return Dict[int, Dict[str, Sequence[Number]]]: log mapping
+        the index of the repetition to a dictionary mapping
+        each place to the amount of tokens observed at each timestep,
+        and an extra variable "time" mapping to the timestamps
+        of simulated-time at each timestep.
+    """
+    raise NotImplementedError("TODO")
+
+
 KeyType = TypeVar("KeyType")
 ValueToCombine = TypeVar("ValueToCombine")
+
+
 def get_all_combos(all_values: Dict[KeyType, Sequence[ValueToCombine]]
                    ) -> List[Dict[KeyType, ValueToCombine]]:
     """
@@ -62,7 +103,7 @@ def get_all_combos(all_values: Dict[KeyType, Sequence[ValueToCombine]]
     (key, values) = all_values.popitem()
     output = []
     for value in values:
-        new_choice_combo = {key:value}
+        new_choice_combo = {key: value}
         other_combos = get_all_combos(all_values.copy())
         for other_combo in other_combos:
             other_combo.update(new_choice_combo)
