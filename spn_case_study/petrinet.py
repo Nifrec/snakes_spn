@@ -29,7 +29,6 @@ of the Pdn-vs-GbPdn bio-modelling case study.
 """
 
 
-
 from typing import Dict, Iterable, Tuple, TypedDict, Set
 import warnings
 
@@ -57,7 +56,8 @@ TRANS = trans_field_names
 
 # Mapping of transition name to the place_field_name of incoming places.
 TRANS_TO_PLACES: Dict[str, ArcDict] = {
-    "prod_gba2": {"post_arcs": ("gba2",)},
+    "prod_gba2": {"pre_arcs": ("gr_pdn",),
+                  "post_arcs": ("gba2",)},
     "decay_gba2": {"pre_arcs": ("gba2",), },
     "cleave": {"read_arcs": ("gba2",),
                "pre_arcs": ("gbpdn",),
@@ -68,8 +68,10 @@ TRANS_TO_PLACES: Dict[str, ArcDict] = {
     "unbind_pdn": {"pre_arcs": ("gr_pdn",),
                    "post_arcs": ("pdn", "gr_free")},
     "decay_gbpdn": {"pre_arcs": ("gbpdn",), },
-    "bind_gbpdn": {"pre_arcs": ("gr_free", "gbpdn"), "post_arcs": ("gr_gbpdn",)},
-    "unbind_gbpdn": {"pre_arcs": ("gr_gbpdn",), "post_arcs": ("gr_free", "gbpdn")},
+    "bind_gbpdn": {"pre_arcs": ("gr_free", "gbpdn"),
+                   "post_arcs": ("gr_gbpdn",)},
+    "unbind_gbpdn": {"pre_arcs": ("gr_gbpdn",),
+                     "post_arcs": ("gr_free", "gbpdn")},
     "recruit_neutrophil": {"read_arcs": ("gr_pdn",),
                            "pre_arcs": ("neutrophil_free",),
                            "post_arcs": ("neutrophil_inflaming",)}
