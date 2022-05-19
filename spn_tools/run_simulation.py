@@ -62,6 +62,39 @@ def run_repeated_experiment(num_reps: int,
                             max_time: float = float("inf"),
                             verbose: bool = True
                             ) -> dict[int, dict[str, list[float | int]]]:
+    """
+    Same as `run_simulation()`, but repeats the simulation
+    from the initial marking `num_reps` times.
+    The output is a dictionary mapping each repetition-index
+    in [0, `num_reps`-1] to the output log of that simulation.
+
+    @param num_reps: amount of independent 
+        repetitions of the simulation from the starting state.
+    @type num_reps: int
+
+    @param spn: the Stochastic Petri-Net to simulate.
+        Requires the `snakes_spn.plugin` SNAKES-plugin to be loaded!
+    @type spn: PetriNet
+
+    @param max_steps: maximum amount of transition-firings before the
+        simulation terminates. Use `None` for no limit.
+    @type max_steps: Optional[int]
+
+    @param max_time: maximum amount of simulated time.
+        This is the cumulative sum of the delays between
+        transition firings. The simulation stops after this
+        amount of time has passed: it may overshoot it during
+        the last step.
+        Default value: `float("inf")`.
+    @type max_time: float
+
+    @param verbose: flag whether progress should be printed.
+    @type verbose: bool
+
+    @return dict[int, dict[str, list[float | int]]], dictionary mapping
+        index of the repetition to the output of the simulation
+        (as returned by `run_simulation()`).
+    """
     run_to_log: Dict[int, dict] = {}
     __print_if(verbose, "Starting repeated experiment "
                f"with {num_reps} repetitions.")
