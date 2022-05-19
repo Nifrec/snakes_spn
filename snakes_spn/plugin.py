@@ -40,7 +40,10 @@ from snakes.data import Substitution
 from snakes.nets import Expression, Token
 import snakes.nets
 
-
+# It is asserted that probabilities are a float in [0, 1].
+# However, numerical errors may make them overshoot 1 
+# by a non-significant amount.
+PROB_ERROR_MARGIN = 1e-5
 
 
 def gen_transition_class(module: ModuleType) -> Type[snakes.nets.Transition]:
@@ -188,8 +191,9 @@ def gen_petrinet_class(module: ModuleType) -> Type[snakes.nets.PetriNet]:
                 trans_idx += 1
                 cum_prob += enabled_rates[trans_idx] / sum_rates
 
-            assert 0 < cum_prob <= 1, \
-                "Cannot happen: cumulative probability exceeded 1"
+            assert 0 < cum_prob <= 1+PROB_ERROR_MARGIN, \
+                "Cannot happen: cumulative probability exceeded 1. " \
+                    +f"Got p={cum_prob:.3f}"
 
             output = (enabled_transitions[trans_idx],
                       enabled_modes[trans_idx],
