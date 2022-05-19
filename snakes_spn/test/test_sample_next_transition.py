@@ -30,7 +30,9 @@ features of the plugin added.
 """
 
 
-from snakes_spn.test.testing_tools import H2_INIT, H2O_INIT, O2_INIT, Fe2O3_INIT, Fe_INIT, Ti_INIT, TiO2_INIT, draw_graph, draw_graph_advanced_net, setup_advanced_spn, ADVANCED_GRAPH_FILENAME
+from snakes_spn.test.testing_tools import (H2_INIT, H2O_INIT, O2_INIT, 
+    Fe2O3_INIT, Fe_INIT, Ti_INIT, TiO2_INIT, draw_graph, 
+    draw_graph_advanced_net, setup_advanced_spn, ADVANCED_GRAPH_FILENAME)
 
 import unittest
 from snakes.data import Substitution
