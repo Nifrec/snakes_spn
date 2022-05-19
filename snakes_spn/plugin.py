@@ -84,6 +84,14 @@ def gen_transition_class(module: ModuleType) -> Type[snakes.nets.Transition]:
             current_rate: Token = self._rate.bind(binding)
             return float(current_rate.value)
 
+        def __repr__(self) -> str:
+            output = f"Transition({repr(self.name)}, {repr(self.guard)}" \
+                + f", rate_function={repr(self._rate)})"
+            return output
+
+        def __str__(self) -> str:
+            return repr(self)
+
     return Transition
 
 
@@ -136,7 +144,7 @@ def gen_petrinet_class(module: ModuleType) -> Type[snakes.nets.PetriNet]:
             if rng is None:
                 rng = random.random
 
-            transitions = {trans.name: trans.modes()
+            trans_to_mode = {trans.name: trans.modes()
                            for trans in self.transition()}
 
             # Lists of names, modes (Substitutions/bindings) and rates
@@ -144,13 +152,13 @@ def gen_petrinet_class(module: ModuleType) -> Type[snakes.nets.PetriNet]:
             enabled_transitions: List[str] = []
             enabled_modes: List[Substitution] = []
             enabled_rates: List[float] = []
-            for trans_name in transitions:
-                if len(transitions[trans_name]) > 0:
+            for trans_name in trans_to_mode.keys():
+                if len(trans_to_mode[trans_name]) > 0:
                     enabled_transitions.append(trans_name)
                     # Use first possible variable binding.
                     # For most SPN applications there
                     # will probably be only one anyway.
-                    mode = transitions[trans_name][0]
+                    mode = trans_to_mode[trans_name][0]
                     enabled_modes.append(mode)
                     rate = self.transition(trans_name).get_current_rate(mode)
                     enabled_rates.append(rate)
