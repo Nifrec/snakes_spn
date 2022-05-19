@@ -47,19 +47,22 @@ if True:
 def run_full_grid_search(rates_all_choices: Dict[str, Sequence[str]],
                          init_markings_all_choices: Dict[str, Sequence[int]],
                          top_level_save_dir: str,
-                         num_repetitions: int
+                         num_repetitions: int,
+                         max_steps: int,
+                         max_time: float,
                          ):
     warnings.warn("TODO: Docstring missing!")
     if not os.path.exists(top_level_save_dir):
         gen_directories(top_level_save_dir)
 
     exp_idx = 0
-    for rates in get_all_combos(rates_all_choices):
-        for init_markings in get_all_combos(init_markings_all_choices):
+    for rates in get_all_combos(rates_all_choices.copy()):
+        for init_markings in get_all_combos(init_markings_all_choices.copy()):
             print(f"Starting experiment {exp_idx}")
             dirname = os.path.join(top_level_save_dir, f"exp_{exp_idx}")
             os.mkdir(dirname)
-            run_experiment(rates, init_markings, dirname, num_repetitions)
+            run_experiment(rates, init_markings, dirname, num_repetitions, 
+                           max_steps, max_time)
             exp_idx+=1
 
 
@@ -67,7 +70,9 @@ def run_full_grid_search(rates_all_choices: Dict[str, Sequence[str]],
 def run_experiment(rates: Dict[str, str],
                    init_markings: Dict[str, int],
                    save_dir: str,
-                   num_repetitions: int
+                   num_repetitions: int,
+                   max_steps: int,
+                   max_time: float,
                    ) -> Dict[int, Dict[str, Sequence[Number]]]:
     """
     Create a Pdn-vs-GbPdn network with the given rates and initial markings,
@@ -76,6 +81,10 @@ def run_experiment(rates: Dict[str, str],
     as "logs.json" and "hyperparameters.json" respectively
     in the directory `save_dir`.
     Also return the log.
+
+    WARNING: setting neither `max_steps` nor `max_time` 
+        might result in an infinitely long simulation, 
+        depending on the SPN architecture!
 
     @param rates: mapping of transition names to rate formula
         (must be parsable by SNAKES's `Expression` class,
@@ -94,6 +103,19 @@ def run_experiment(rates: Dict[str, str],
     @param num_repetitions: amount of independent repetitions of the simulation.
     @type num_repetitions: int
 
+    @param max_steps: maximum amount of transition-firings before a repetition
+        of the simulation terminates. 
+        Use `None` for no limit.
+    @type max_steps: Optional[int]
+
+    @param max_time: maximum amount of simulated time.
+        This is the cumulative sum of the delays between
+        transition firings. The simulation stops after this
+        amount of time has passed: it may overshoot it during
+        the last step. The value `float("inf")` is allowed
+        when no limit on simulated time should be used.
+    @type max_time: float
+
     @return Dict[int, Dict[str, Sequence[Number]]]: log mapping
         the index of the repetition to a dictionary mapping
         each place to the amount of tokens observed at each timestep,
@@ -101,7 +123,8 @@ def run_experiment(rates: Dict[str, str],
         of simulated-time at each timestep.
     """
     spn = build_gbpdn_spn(init_marking=init_markings, rates=rates)
-    run_to_log = run_repeated_experiment(num_repetitions, spn, verbose=True)
+    run_to_log = run_repeated_experiment(num_repetitions, spn, max_steps, 
+                                         max_time, verbose=True)
     hyperparams = rates.copy()
     hyperparams.update(init_markings)
 

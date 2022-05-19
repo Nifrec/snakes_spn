@@ -38,12 +38,14 @@ PDN_DECAY_CONST = 0
 GBPDN_DECAY_CONST = 0
 CLEAVE_CONST = 1
 PDN_BIND_CONST = 1
-GBPDN_BIND_CONST = 1
+GBPDN_BIND_CONST = PDN_BIND_CONST / 1000
 PDN_UNBIND_CONST = 1
 GBPDN_UNBIND_CONST = 1
 NEUTROPHIL_RECRUIT_CONST = 1
 
 NUM_REPETITIONS = 20
+MAX_NUM_TRANSITIONS = 500
+MAX_TIME_PASSED = 5
 
 
 def main():
@@ -51,7 +53,8 @@ def main():
     savedir_name = os.path.join("test_runs",timestamp)
     run_full_grid_search(setup_rates_all_choices(),
                          setup_init_markings_all_choices(),
-                         savedir_name, NUM_REPETITIONS)
+                         savedir_name, NUM_REPETITIONS,
+                         MAX_NUM_TRANSITIONS, MAX_TIME_PASSED)
 
 
 def setup_init_markings_all_choices() -> Dict[str, Sequence[int]]:
@@ -61,7 +64,6 @@ def setup_init_markings_all_choices() -> Dict[str, Sequence[int]]:
     output["gbpdn"] = (100,)
     output["neutrophil_free"] = (100,)
     output["gr_free"] = (100,)
-
     return output
 
 
@@ -69,7 +71,7 @@ def setup_rates_all_choices() -> Dict[str, Sequence[str]]:
     output = {}
 
     # TODO: Inverse mass action???
-    output["prod_gba2"] = f"{GBA2_PROD_CONST}1/({VARS['gba2']}+{VARS['gr_pdn']}+1)"
+    output["prod_gba2"] = f"{GBA2_PROD_CONST}/({VARS['gba2']}+{VARS['gr_pdn']}+1)"
 
     # Decay reactions: all use the Mass-action Law
     output["decay_gba2"] = f"{GBA2_DECAY_CONST}*{VARS['gba2']}"
