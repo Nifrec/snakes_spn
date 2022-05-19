@@ -127,6 +127,13 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-snakes_spn/snakes_spn.code-workspace
+
+
+# Data from debugging simulation runs
+test_runs/*
+last_pdn_spn.pdf
 pdn_spn.pdf
+
+# VS-code stuff (IDE)
+snakes_spn/snakes_spn.code-workspace
 .vscode/launch.json
