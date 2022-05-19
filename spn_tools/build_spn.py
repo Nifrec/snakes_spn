@@ -150,6 +150,11 @@ def build_spn(place_names: Tuple[str, ...],
             for place in arc_dict["post_arcs"]:
                 spn.add_output(place, trans, Expression(
                     f"{var_names[place]}+1"))
+
+        if "read_arcs" in arc_dict.keys():
+            for place in arc_dict["read_arcs"]:
+                spn.add_output(place, trans, Expression(
+                    f"{var_names[place]}"))
     return spn
 
 
