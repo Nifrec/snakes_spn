@@ -51,8 +51,21 @@ class ArcDict(TypedDict, total=False):
     post_arcs: Tuple[str, ...]
 
 
-def get_all_places(arc_dict: ArcDict) -> Set[str]:
+def _get_all_places(arc_dict: ArcDict) -> Set[str]:
     return set(itertools.chain(*arc_dict.values()))
+
+def _get_input_places(arc_dict: ArcDict) -> Set[str]:
+    """
+    Return places with one-way input arcs and with read arcs
+    """
+    # Cannot just return union of "read_arcs" and "post_arcs",
+    # since some of these keys may be missing.
+    output = set()
+    for key in arc_dict.keys():
+        if key != "post_arcs":
+            output.update(arc_dict[key])
+
+    return output
 
 
 def build_spn(place_names: Tuple[str, ...],
@@ -107,7 +120,7 @@ def build_spn(place_names: Tuple[str, ...],
     trans: str
     for trans, arc_dict in trans_to_places.items():
         assert trans in trans_names
-        places = set(get_all_places(arc_dict))
+        places = set(_get_all_places(arc_dict))
         assert place_names_set.issuperset(places), \
             f"{places} contains unknown places"
 
@@ -120,12 +133,12 @@ def build_spn(place_names: Tuple[str, ...],
     for trans in trans_names:
         rate = Expression(rates[trans])
         arc_dict = trans_to_places[trans]
-        places = get_all_places(arc_dict)
-        guard_str = create_guard(places, var_names)
+        input_places = _get_input_places(arc_dict)
+        guard_str = create_guard(input_places, var_names)
         guard = Expression(guard_str)
         spn.add_transition(Transition(trans, guard=guard, rate_function=rate))
 
-        for place in places:
+        for place in _get_all_places(arc_dict):
             spn.add_input(place, trans, Variable(var_names[place]))
 
         if "pre_arcs" in arc_dict.keys():
