@@ -64,3 +64,15 @@ Gr reduces the attractors, and the concentration
 of attractors determines the rate of neutrophil recruitment.
 The exact types of attractors, with their different doses and
 strengths, is not modelled: there is simply one place for '*attractors*'.
+
+## PetriNet v5
+
+Version 4 included the ideas above,
+but made the decay of Gba2 depend also on the concentration of Gba2,
+and the inhibition of the Neutrophil attractors depend on their concentration.
+However the inhibition of active Gr on both these places
+seems (mostly) indirect by decreasing the production.
+As a consequence, one would *not* expect a high concentration 
+of Gba2/attractors to increase the rate of inhibition!
+So in version 5, the rates of both inhibition transitions
+only depend on the concentration of active Gr.
