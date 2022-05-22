@@ -318,10 +318,10 @@ def plot_results(run_to_log: Dict[int, Dict[str, List[Number]]],
     if ax is None:
         fig, ax = plt.subplots(nrows=1, ncols=1)
 
-    y_data, timebox_size = aggregate_dataset_in_timeboxes(run_to_log,
+    y_data, timebox_duration = aggregate_dataset_in_timeboxes(run_to_log,
                                                           x_var, y_vars, 
                                                           num_timeboxes)
-    x_values = [(i+0.5)*timebox_size for i in range(num_timeboxes)]
+    x_values = [(i+0.5)*timebox_duration for i in range(num_timeboxes)]
 
     for y_var_name in y_vars:
         y_mean_values = np.mean(y_data[y_var_name], axis=0)
@@ -375,7 +375,7 @@ def __find_y_data(y_vars: Sequence[str],
 def aggregate_dataset_in_timeboxes(
         run_to_log: Dict[int, Dict[str, List[Number]]],
         x_var: str, y_vars: Sequence[str], 
-        num_timeboxes:int) -> Tuple[Dict[str, Sequence[float]], float]:
+        num_timeboxes:int) -> Tuple[Dict[str, List[List[Number]]], float]:
     """
     High-level wrapper around `aggregate_in_timeboxes`.
     Use the maximum value of the x_var in the dataset (`run_to_log`)
@@ -400,18 +400,18 @@ def aggregate_dataset_in_timeboxes(
         corresponding to the time-intervals with `timebox_size` spacing.
     @type num_timeboxes: int
 
-    @return Dict[str, Sequence[float]]: mapping of each y-var to the
-        aggregated values.
-    @return float: interval per timebox (same unit as the x-var).
+    @return Dict[str, List[List[Number]]]: mapping of each y-var to the
+        aggregated values per run.
+    @return float: interval length per timebox (same unit as the x-var).
     """
     timestamps: Dict[int, List[float | int]]
     timestamps = {run_idx: log[x_var] for run_idx, log in run_to_log.items()}
     max_time = max(max(timestamps.values(), key=lambda x: x[-1]))
-    timebox_size = max_time/num_timeboxes
+    timebox_duration = max_time/num_timeboxes
 
     y_data = __find_y_data(y_vars, timestamps, run_to_log, num_timeboxes,
-                           timebox_size)
-    return y_data, timebox_size
+                           timebox_duration)
+    return y_data, timebox_duration
 
 
 def aggregate_in_timeboxes(timestamps: Sequence[float],
