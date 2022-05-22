@@ -43,6 +43,8 @@ PDN_UNBIND_CONST = 1
 GBPDN_UNBIND_CONST = 1
 NEUTROPHIL_RECRUIT_CONST = 1
 
+REPRESS_INFL_CONST = 1
+
 NUM_REPETITIONS = 20
 MAX_NUM_TRANSITIONS = 500
 MAX_TIME_PASSED = 5
@@ -70,11 +72,8 @@ def setup_init_markings_all_choices() -> Dict[str, Sequence[int]]:
 def setup_rates_all_choices() -> Dict[str, Sequence[str]]:
     output = {}
 
-    # TODO: Inverse mass action???
-    output["prod_gba2"] = f"{GBA2_PROD_CONST}/({VARS['gba2']}+{VARS['gr_pdn']}+1)"
-
     # Decay reactions: all use the Mass-action Law
-    output["decay_gba2"] = f"{GBA2_DECAY_CONST}*{VARS['gba2']}"
+    output["decay_gba2"] = f"{GBA2_DECAY_CONST}*{VARS['gr_pdn']}"
     output["decay_pdn"] = f"{PDN_DECAY_CONST}*{VARS['pdn']}"
     output["decay_gbpdn"] = f"{GBPDN_DECAY_CONST}*{VARS['gbpdn']}"
 
@@ -89,16 +88,16 @@ def setup_rates_all_choices() -> Dict[str, Sequence[str]]:
     output["unbind_pdn"] = f"{PDN_UNBIND_CONST}*{VARS['gr_pdn']}"
     output["unbind_gbpdn"] = f"{GBPDN_UNBIND_CONST}*{VARS['gr_gbpdn']}"
 
+    output["repress_infl"] = f"{REPRESS_INFL_CONST} * {VARS['gr_pdn']}"
+
     # TODO: Neutrophil recruitment.
-    # A very complex series of interactions and indirections.
-    # No idea how to summarize it in a single function...
-    # For now, let's try both linear and exponential growth,
-    # both with inverse mass-action inhibition?
+    # Does attractment slow down the more neutrophils are already present?
+    # This would cause exponentially decaying growth 
+    # (assuming constant `infl_sig`): 
+    # f"{NEUTROPHIL_RECRUIT_CONST}*{VARS['neutrophil_free']}*{VARS['infl_sig']}"
     output["recruit_neutrophil"] = (
         # Linear growth:
-        f"{NEUTROPHIL_RECRUIT_CONST}/{VARS['gr_pdn']}",
-        # Exponentially decaying growth:
-        f"{NEUTROPHIL_RECRUIT_CONST}*{VARS['neutrophil_free']}/{VARS['gr_pdn']}"
+        f"{NEUTROPHIL_RECRUIT_CONST}*{VARS['infl_sig']}",        
     )
 
     for key in output.keys():

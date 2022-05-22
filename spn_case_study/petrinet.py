@@ -41,24 +41,23 @@ if True:
 
 # Names of the places of the Petri-Net
 place_field_names = ("pdn", "gbpdn", "gba2", "gr_free", "gr_pdn", "gr_gbpdn",
-                     "neutrophil_free", "neutrophil_inflaming")
+                     "neutrophil_free", "neutrophil_inflaming", "infl_sig")
 PLACES = place_field_names
 
 # Names of the variables as used in SNAKES to mark arcs.
 VARS = {name: f"c_{name}" for name in place_field_names}
 
 # Names of the transitions
-trans_field_names = ("prod_gba2", "decay_gba2", "cleave", "decay_pdn",
+trans_field_names = ("decay_gba2", "cleave", "decay_pdn",
                      "bind_pdn", "unbind_pdn", "decay_gbpdn", "bind_gbpdn",
-                     "unbind_gbpdn", "recruit_neutrophil")
+                     "unbind_gbpdn", "recruit_neutrophil", "repress_infl")
 TRANS = trans_field_names
 
 
 # Mapping of transition name to the place_field_name of incoming places.
 TRANS_TO_PLACES: Dict[str, ArcDict] = {
-    "prod_gba2": {"read_arcs": ("gr_pdn",),
-                  "post_arcs": ("gba2",)},
-    "decay_gba2": {"pre_arcs": ("gba2",), },
+    "decay_gba2": {"read_arcs": ("gr_pdn",),
+                  "pre_arcs": ("gba2",)},
     "cleave": {"read_arcs": ("gba2",),
                "pre_arcs": ("gbpdn",),
                "post_arcs": ("pdn",)},
@@ -72,9 +71,11 @@ TRANS_TO_PLACES: Dict[str, ArcDict] = {
                    "post_arcs": ("gr_gbpdn",)},
     "unbind_gbpdn": {"pre_arcs": ("gr_gbpdn",),
                      "post_arcs": ("gr_free", "gbpdn")},
-    "recruit_neutrophil": {"read_arcs": ("gr_pdn",),
+    "recruit_neutrophil": {"read_arcs": ("infl_sig",),
                            "pre_arcs": ("neutrophil_free",),
-                           "post_arcs": ("neutrophil_inflaming",)}
+                           "post_arcs": ("neutrophil_inflaming",)},
+    "repress_infl": {"read_arcs": ("gr_pdn",),
+                        "pre_arcs": ("infl_sig",),},
 }
 
 
