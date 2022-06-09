@@ -76,3 +76,18 @@ As a consequence, one would *not* expect a high concentration
 of Gba2/attractors to increase the rate of inhibition!
 So in version 5, the rates of both inhibition transitions
 only depend on the concentration of active Gr.
+
+## Within and between cells
+Some places of the Petri-Net (the concentrations Gba, Pdn, GbPdn,
+Gr, etc.) refer to phenomena inside a cell,
+while others (neutrophil attraction, inflammation signals)
+are present on a higher abstraction level.
+This is not problematic: all values are relative,
+so one may consider the within-cell processes
+to be the sum of many cells doing them in parallel.
+The model would appear sufficiently crude and abstract
+that there is no difference between modelling involved
+inflamed cells as one big cell, 
+or running many small cells in parallel.
+For more accurate models this distinction would
+probably be very relevant.
