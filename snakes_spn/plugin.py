@@ -60,7 +60,6 @@ def gen_transition_class(module: ModuleType) -> Type[snakes.nets.Transition]:
 
         def __init__(self, name, guard, **args) -> None:
             """
-
             @param args: plugin arguments
             @keyword stats: initial status of the Transition 
                 (defaults to `TransitionStatus(False, None)`)
@@ -86,6 +85,16 @@ def gen_transition_class(module: ModuleType) -> Type[snakes.nets.Transition]:
             """
             current_rate: Token = self._rate.bind(binding)
             return float(current_rate.value)
+
+        def _check(self, binding: Substitution, tokens: bool, input:bool) -> bool:
+            output = module.Transition._check(self, binding, tokens,input)
+            output &= self.get_current_rate(binding) > 0
+            return output
+
+        def enabled(self, binding: Substitution) -> bool:
+            output = module.Transition.enabled(self, binding)
+            output &= self.get_current_rate(binding) > 0
+            return output
 
         def __repr__(self) -> str:
             output = f"Transition({repr(self.name)}, {repr(self.guard)}" \
@@ -164,6 +173,7 @@ def gen_petrinet_class(module: ModuleType) -> Type[snakes.nets.PetriNet]:
                     mode = trans_to_mode[trans_name][0]
                     enabled_modes.append(mode)
                     rate = self.transition(trans_name).get_current_rate(mode)
+                    assert rate > 0, f"{trans_name}:{rate}, {mode}"
                     enabled_rates.append(rate)
 
             if len(enabled_transitions) == 0:
