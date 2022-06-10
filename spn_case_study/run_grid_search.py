@@ -27,8 +27,9 @@ File content:
 Tools for simulating the Pdn-vs-GbPdn SPN for a wide variety of
 different parameter combinations.
 """
-from typing import TypeVar, Dict, Sequence, List, Iterator
+from typing import TypeVar, Dict, Sequence, List, Iterator, Optional
 from numbers import Number
+from collections import deque
 
 import os
 import warnings
@@ -50,8 +51,55 @@ def run_full_grid_search(rates_all_choices: Dict[str, Sequence[str]],
                          num_repetitions: int,
                          max_steps: int,
                          max_time: float,
+                         exp_dir_names: Optional[Sequence[str]] = None
                          ):
-    warnings.warn("TODO: Docstring missing!")
+    """
+    Call `run_experiment()` for all combinations
+    of a rates and initial markings.
+    Save experiments as `exp_0`, `exp_1`, `exp_2`, etc.,
+    unless different names provided.
+
+    @param rates_all_choices: mapping of transition names to 
+        a sequence of rate formulas, 
+        each of which will be tried.
+        Formulas must be parsable by SNAKES's `Expression` class,
+        it may reference variables associated with the places
+        that have arcs to the transition.
+    @type rates: Dict[str, Sequence[str]]
+
+    @param init_markings: mapping of places to their 
+        a sequence of initial integer token count.
+        All choices of initial token counts will be tried.
+    @type init_markings:  Dict[str, Sequence[int]]
+
+    @param save_dir: path to directory 
+        to save the log and the hyperparameter JSON files in.
+    @type save_dir: str
+
+    @param num_repetitions: amount of independent repetitions of the simulation.
+    @type num_repetitions: int
+
+    @param max_steps: maximum amount of transition-firings before a repetition
+        of the simulation terminates. 
+        Use `None` for no limit.
+    @type max_steps: Optional[int]
+
+    @param max_time: maximum amount of simulated time.
+        This is the cumulative sum of the delays between
+        transition firings. The simulation stops after this
+        amount of time has passed: it may overshoot it during
+        the last step. The value `float("inf")` is allowed
+        when no limit on simulated time should be used.
+    @type max_time: float
+
+    @param exp_dir_names: names of the directories to store
+        the results of each experiment in.
+        If `None` or too few names are provided,
+        the remaining directories are named `exp_X`
+        where `X` is the index of the experiment (counting starts at 0).
+    @type exp_dir_names: Optional[Sequence[str]]
+    """
+
     if not os.path.exists(top_level_save_dir):
         gen_directories(top_level_save_dir)
 
@@ -59,12 +107,17 @@ def run_full_grid_search(rates_all_choices: Dict[str, Sequence[str]],
     for rates in get_all_combos(rates_all_choices.copy()):
         for init_markings in get_all_combos(init_markings_all_choices.copy()):
             print(f"Starting experiment {exp_idx}")
-            dirname = os.path.join(top_level_save_dir, f"exp_{exp_idx}")
-            os.mkdir(dirname)
-            run_experiment(rates, init_markings, dirname, num_repetitions, 
+
+            if exp_dir_names is not None and exp_idx < len(exp_dir_names) :
+                dirname = exp_dir_names[exp_idx]
+            else:
+                dirname = f"exp_{exp_idx}"
+
+            full_dirname = os.path.join(top_level_save_dir, dirname)
+            os.mkdir(full_dirname)
+            run_experiment(rates, init_markings, full_dirname, num_repetitions, 
                            max_steps, max_time)
             exp_idx+=1
-
 
 
 def run_experiment(rates: Dict[str, str],
