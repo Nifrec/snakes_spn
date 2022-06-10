@@ -137,3 +137,6 @@ pdn_spn.pdf
 # VS-code stuff (IDE)
 snakes_spn/snakes_spn.code-workspace
 .vscode/launch.json
+
+# Too much experimental data to all synchronize
+spn_case_study/main_exp_dir
