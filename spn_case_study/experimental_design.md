@@ -29,7 +29,8 @@ So one can set 1000 tokens initially in a place,
 and interpret 1 token as 0.1% of the initial amount
 of the elements. 
 To scale the strength and absolute differences
-between 
+between different places,
+the constants in the transition rates can be adjusted.
 
 
 ## Main variables of interest
