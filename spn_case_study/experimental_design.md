@@ -173,3 +173,12 @@ actually was a medically useful amount of suppression.)
 5. Perform an experiment in which Gba2 decays.
 6. [if time] run an experiment Pdn/GbPdn decays, 
     or with a different neutrophil-attraction-rate-function.
+
+## Outcomes
+0. The distribution seems reasonably normal.
+1. A repression rate constant of 10 seems an approximate value.
+    If $t$ is the time where half the neutrophils are recruited
+    in the unrepressed case, then the value 10 (with 1000 tokens on
+    Gr\*, the inflammation-signals and initially on free neutrophils)
+    reduces this amount by 80% (i.e., only 10% of neutrophils are recruited
+    at time $t$ with repression constant 10, but 50% when unrepressed).
