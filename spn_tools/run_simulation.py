@@ -496,3 +496,39 @@ def __agg_curr_timebox(output: Sequence[float],
         output[curr_timebox] = output[curr_timebox-1]
     elif num_points_added > 0:
         output[curr_timebox] = output[curr_timebox]/num_points_added
+
+def get_num_timeboxes_for_fixed_duration(
+        run_to_log: dict[int, dict[str, list[Number]]],
+        duration: float) -> int:
+    """
+    Find the number `n` such that `aggregate_dataset_in_timeboxes`
+    with `num_timeboxes=n` returns an aggregation in which
+    each timebox covers approximately `duration` time.
+
+    @param run_to_log: results of the experiment for which
+        to compute the number of timeboxes
+        (used to find the maximum total time passed).
+    @type run_to_log: dict[int, dict[str, list[Number]]]
+
+    @param duration: desired duration of a timebox.
+    @type duration: float
+
+    @return: int, amount of needed timeboxes to partition
+        `run_to_log` of timeboxes of length `duration`.
+    """
+    max_time = get_max_timestamp(run_to_log)
+    n = round(max_time / duration)
+    return n
+
+def get_max_timestamp(run_to_log: dict[int, dict[str, list[Number]]]) -> float:
+    """
+    Get the largest observed timestamp in the given experiment data.
+    Assumes that all timestamps are in chronological order.
+
+    @param run_to_log: data resulting from an experiment,
+        to find the largest timestamp in.
+    @type run_to_log: dict[int, dict[str, list[Number]]]
+
+    @return: float, largest timestamp in the dataset.
+    """
+    return max(log["time"][-1] for log in run_to_log.values())
