@@ -212,7 +212,7 @@ def gen_directories(path: str):
         os.mkdir(path)
 
 
-def load_log(filepath: str) -> dict:
+def load_log(filepath: str, convert_int_keys: bool=True) -> dict:
     """
     Load a JSON file, convert keys in the top-level
     directory to `int` if they can be interpreted as such.
@@ -220,17 +220,24 @@ def load_log(filepath: str) -> dict:
     @param log: dictionary to save. All contained elements
         must be JSON serializable.
     @type log: dict
+
+    @param convert_int_keys: flag whether keys that can be
+        interpreted as integers should be converted from
+        string to integer (by default, all keys are loaded as strings).
+    @type convert_int_keys: bool
+
     @return dict: loaded JSON objects, with keys converted to int
         where possible.
     """
     with open(filepath, "r") as f:
         log: dict = json.load(f)
 
-    old_keys = tuple(log.keys())
-    for key in old_keys:
-        if isinstance(eval(key), int):
-            log[eval(key)] = log[key]
-            del log[key]
+    if convert_int_keys:
+        old_keys = tuple(log.keys())
+        for key in old_keys:
+            if isinstance(eval(key), int):
+                log[eval(key)] = log[key]
+                del log[key]
 
     return log
 
@@ -242,7 +249,8 @@ def plot_results(run_to_log: Dict[int, Dict[str, List[Number]]],
                  ax: Optional[Axes] = None,
                  interval_type: Literal["min_max", "confidence"] | None
                  = "min_max",
-                 conf_ival: float | None = 0.9) -> Axes:
+                 conf_ival: float | None = 0.9,
+                 add_legend: bool=False) -> Axes:
     """
     Create plots of desired variables,
     averaged over multiple independent runs.
@@ -309,6 +317,10 @@ def plot_results(run_to_log: Dict[int, Dict[str, List[Number]]],
         around the mean. Only used when `interval_type='confidence'`.
     @type conf_ival: float | None
 
+    @param legend: flag whether an automatically-generated
+        legend should be added (uses the strings in `y_vars` as labels).
+    @type legend: bool
+
     @return Axes: Matplotlib axis in which the graphs are drawn.
         This is the input argument `ax` if it was not `None`,
         and a new `Axes` otherwise.
@@ -341,7 +353,8 @@ def plot_results(run_to_log: Dict[int, Dict[str, List[Number]]],
             ax.fill_between(x_values, y_ival_min, y_ival_max,
                             alpha=0.35)
 
-    ax.legend()
+    if add_legend:
+        ax.legend()
     if x_var is not None:
         ax.set_xlabel(x_var)
 
