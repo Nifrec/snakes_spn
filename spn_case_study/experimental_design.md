@@ -188,3 +188,14 @@ actually was a medically useful amount of suppression.)
 2. to 4. See `main_experiment.ipynb`. 
     Variables $x_3$ and $x_4$ seem to have little effect,
     but $x_1$ and $x_2$ have strong effects.
+3. See 2.
+4. See 2.
+5. See `main_experiment.ipynb`. It seems to have little effect,
+    as a result of earlier modelling choices.
+    That is, because:
+    * Conversion of GbPdn to Pdn occurs quickly, before much Gr* is formed.
+    * Lower doses of Gr* also have strong effects.
+    Well, it makes sense. You need a sufficient dose of Gr*
+    to suppress Gba2. But a sufficient dose of Gr* would
+    also already inhibit the inflammation!
+    (at least, in this model.)
