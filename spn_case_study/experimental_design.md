@@ -177,9 +177,14 @@ actually was a medically useful amount of suppression.)
 
 ## Outcomes
 0. The distribution seems reasonably normal.
+    See `neutrophil_normality.ipynb`.
 1. A repression rate constant of 10 seems an approximate value.
     If $t$ is the time where half the neutrophils are recruited
     in the unrepressed case, then the value 10 (with 1000 tokens on
     Gr\*, the inflammation-signals and initially on free neutrophils)
     reduces this amount by 80% (i.e., only 10% of neutrophils are recruited
     at time $t$ with repression constant 10, but 50% when unrepressed).
+    See `tune_inflam_repress_rate.ipynb`.
+2. to 4. See `main_experiment.ipynb`. 
+    Variables $x_3$ and $x_4$ seem to have little effect,
+    but $x_1$ and $x_2$ have strong effects.
