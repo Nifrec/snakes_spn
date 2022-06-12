@@ -66,7 +66,6 @@ The exact types of attractors, with their different doses and
 strengths, is not modelled: there is simply one place for '*attractors*'.
 
 ## PetriNet v5
-
 Version 4 included the ideas above,
 but made the decay of Gba2 depend also on the concentration of Gba2,
 and the inhibition of the Neutrophil attractors depend on their concentration.
@@ -76,6 +75,36 @@ As a consequence, one would *not* expect a high concentration
 of Gba2/attractors to increase the rate of inhibition!
 So in version 5, the rates of both inhibition transitions
 only depend on the concentration of active Gr.
+
+## PetriNet v6
+This version made the decay of Gba2 and the inflammation signals
+depend on their own concentrations again (and also still on Gr*).
+Things decay faster when there is more of it.
+
+It is an interesting question, though, whether
+the concentration of Gr* and Gba2 are additive or multiplicative.
+The SPN diagram now has:
+$\frac{d[Gba2]}{dt} = -e^{x_2 \cdot [Gr^*] \cdot [Gba2]}$.
+But perhaps it should be:
+$\frac{d[Gba2]}{dt} = -e^{x_{2,1} \cdot [Gr^*] + x_{2,2}\cdot [Gba2]}$.
+The latter is a bit problematic in the case
+of the inflammation signals,
+as repression would always occur
+even when $[Gr^*] = 0$.
+In the time scope that is being modelled,
+this is not the case,
+since we know that anti-inflammatory drugs
+are needed and do have effect
+(which would not be the case if
+inflammations repressed themselves very quickly!).
+
+Also, using 
+$\frac{d[Infl.Sig.]}{dt} = -e^{c_1 \cdot [Gr^*]}$
+and re-calibrating $c_1$ would
+be equivalent to setting 
+$c_1 = [Infl.Sig.]_0 \cdot c_{1, \mathit{old}}$.
+This will, in no case, decrease the strength
+of $Gr^*$'s repression, only increase it!
 
 ## Within and between cells
 Some places of the Petri-Net (the concentrations Gba, Pdn, GbPdn,
