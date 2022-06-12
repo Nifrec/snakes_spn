@@ -84,9 +84,9 @@ Things decay faster when there is more of it.
 It is an interesting question, though, whether
 the concentration of Gr* and Gba2 are additive or multiplicative.
 The SPN diagram now has:
-$\frac{d[Gba2]}{dt} = -e^{x_2 \cdot [Gr^*] \cdot [Gba2]}$.
+$\frac{d[Gba2]}{dt} = -x_2 \cdot [Gr^*] \cdot [Gba2]$.
 But perhaps it should be:
-$\frac{d[Gba2]}{dt} = -e^{x_{2,1} \cdot [Gr^*] + x_{2,2}\cdot [Gba2]}$.
+$\frac{d[Gba2]}{dt} = -x_{2,1} \cdot [Gr^*] -x_{2,2}\cdot [Gba2]$.
 The latter is a bit problematic in the case
 of the inflammation signals,
 as repression would always occur
@@ -99,7 +99,7 @@ are needed and do have effect
 inflammations repressed themselves very quickly!).
 
 Also, using 
-$\frac{d[Infl.Sig.]}{dt} = -e^{c_1 \cdot [Gr^*]}$
+$\frac{d[Infl.Sig.]}{dt} = -c_1 \cdot [Gr^*]$
 and re-calibrating $c_1$ would
 be equivalent to setting 
 $c_1 = [Infl.Sig.]_0 \cdot c_{1, \mathit{old}}$.
