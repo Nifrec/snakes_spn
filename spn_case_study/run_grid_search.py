@@ -113,10 +113,15 @@ def run_full_grid_search(rates_all_choices: Dict[str, Sequence[str]],
             else:
                 dirname = f"exp_{exp_idx}"
 
+
             full_dirname = os.path.join(top_level_save_dir, dirname)
-            os.mkdir(full_dirname)
-            run_experiment(rates, init_markings, full_dirname, num_repetitions, 
-                           max_steps, max_time)
+            if os.path.exists(full_dirname):
+                print(f"File `{dirname}` already exists, "
+                    "skipping current configuration.")
+            else:
+                os.mkdir(full_dirname)
+                run_experiment(rates, init_markings, full_dirname, 
+                               num_repetitions, max_steps, max_time)
             exp_idx+=1
 
 
