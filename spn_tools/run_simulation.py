@@ -250,7 +250,7 @@ def plot_results(run_to_log: Dict[int, Dict[str, List[Number]]],
                  interval_type: Literal["min_max", "confidence"] | None
                  = "min_max",
                  conf_ival: float | None = 0.9,
-                 add_legend: bool=False) -> Axes:
+                 add_legend: bool=True) -> Axes:
     """
     Create plots of desired variables,
     averaged over multiple independent runs.
