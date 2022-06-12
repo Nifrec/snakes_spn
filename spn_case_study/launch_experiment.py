@@ -62,10 +62,10 @@ def main():
 def setup_init_markings_all_choices() -> Dict[str, Sequence[int]]:
     output = {name: (0,) for name in PLACES}
 
-    output["gba2"] = (100,)
-    output["gbpdn"] = (100,)
-    output["neutrophil_free"] = (100,)
-    output["gr_free"] = (100,)
+    output["gba2"] = (1000,)
+    output["gbpdn"] = (1000,)
+    output["neutrophil_free"] = (1000,)
+    output["gr_free"] = (1000,)
     return output
 
 
