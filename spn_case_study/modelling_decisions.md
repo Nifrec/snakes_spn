@@ -120,3 +120,13 @@ inflamed cells as one big cell,
 or running many small cells in parallel.
 For more accurate models this distinction would
 probably be very relevant.
+
+## PetriNet v7
+This version renamed the rate-functions
+and labelled the transitions; no structural
+changes were made.
+
+## PetriNet v8
+* Remove decay of Pdn and GbPdn. 
+* Change abstract rates $f_i([A], [B])$
+    by concrete formulas $k_i \cdot [A] \cdot [B]$.
