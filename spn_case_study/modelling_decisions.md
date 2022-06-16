@@ -130,3 +130,8 @@ changes were made.
 * Remove decay of Pdn and GbPdn. 
 * Change abstract rates $f_i([A], [B])$
     by concrete formulas $k_i \cdot [A] \cdot [B]$.
+
+## PetriNet v9
+* Change $k_7$ into $\frac{k_6}{1000}$, using the given
+    assertion that the affinity of GbPdn to Gr
+    is 1000 times smaller as Pdn to Gr.
