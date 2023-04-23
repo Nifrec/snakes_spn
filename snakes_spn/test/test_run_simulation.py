@@ -30,7 +30,8 @@ Tests for the file `spn_tools/run_simulation.py`.
 import json
 import shutil
 import numpy as np
-from spn_tools.run_simulation import (aggregate_in_timeboxes, run_simulation, store_log, load_log,
+from spn_tools.run_simulation import (aggregate_in_timeboxes, run_simulation, 
+                                      store_log, load_log,
                                       run_repeated_experiment, plot_results)
 
 import unittest
