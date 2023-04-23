@@ -141,7 +141,7 @@ def run_simulation(spn: PetriNet,
     @type max_time: float
 
     @return dict[str, list[float|int]], dictionary mapping
-        the names of the places in the SPN to the amount
+        the names of the places in the SPN to the number
         of tokens at every step. Also includes a "time" key
         that maps to the timestamp of the simulated time
         (i.e., cumulative delays) per time step.

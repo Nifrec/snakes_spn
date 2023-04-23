@@ -42,11 +42,11 @@ import snakes_spn.plugin as spn_plugin
 import snakes.plugins
 # To prevent autoformatter from putting `from snk ...` at the top of the file.
 if True:
-    snakes.plugins.load([spn_plugin], "snakes.nets", "snk")
+    snakes.plugins.load([spn_plugin, "gv"], "snakes.nets", "snk")
     from snk import PetriNet, Place, Expression, Transition, Variable, tInteger
 
 PLOT_FILENAME = os.path.join("snakes_spn", "test", "run_sim_graph.pdf")
-
+GRAPH_FILENAME = os.path.join("snakes_spn", "test", "simple_spn.pdf")
 
 class StoreLogTestCase(unittest.TestCase):
 
@@ -200,7 +200,7 @@ def plot_run_simulation_results():
 
 def make_simple_spn(num_input_tokens: int = 36) -> PetriNet:
     """
-    Construct a simple network with one transition"
+    Construct a simple network with one transition.
     """
 
     spn = PetriNet("TestRunSimulationNet")
@@ -217,9 +217,12 @@ def make_simple_spn(num_input_tokens: int = 36) -> PetriNet:
     spn.add_output("sink", "source_to_sink", Expression("c_sink+1"))
     return spn
 
+def graph_simple_spn():
+    spn=make_simple_spn()
+    spn.draw(GRAPH_FILENAME)
+
 
 if __name__ == "__main__":
-
     if not os.path.exists(PLOT_FILENAME):
         plot_run_simulation_results()
 
