@@ -114,7 +114,6 @@ def make_simple_spn(num_input_tokens: int = 36) -> PetriNet:
 
     spn.add_output("source", "source_to_sink", Expression("c_source-1"))
     spn.add_output("sink", "source_to_sink", Expression("c_sink+1"))
-??? from here until ???END lines may have been inserted/deleted
     return spn
 
 num_input_tokens = 36
